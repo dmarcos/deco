@@ -1,0 +1,1276 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Art Deco Generator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Limelight&family=Josefin+Sans:wght@300;400;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --gold:#d4af6a; --gold-dim:rgba(212,175,106,.45); --gold-faint:rgba(212,175,106,.16);
+    --panel:rgba(13,15,19,.84); --text:#efe8d8; --muted:#a79f8e;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;overflow:hidden;background:#0f1115;color:var(--text);font-family:'Josefin Sans',system-ui,sans-serif}
+  #app canvas{display:block}
+  #panel{
+    position:fixed;top:16px;right:16px;bottom:16px;width:390px;display:flex;flex-direction:column;
+    background:var(--panel);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);
+    border:1px solid var(--gold-dim);outline:1px solid var(--gold-faint);outline-offset:4px;
+  }
+  #panel::before,#panel::after{content:"";position:absolute;left:50%;width:120px;height:10px;transform:translateX(-50%);
+    background:linear-gradient(135deg,transparent 33%,var(--gold) 33% 40%,transparent 40% 60%,var(--gold) 60% 67%,transparent 67%) 0 0/20px 10px repeat-x}
+  #panel::before{top:-6px} #panel::after{bottom:-6px;transform:translateX(-50%) scaleY(-1)}
+  header{padding:22px 24px 14px;border-bottom:1px solid var(--gold-dim);text-align:center}
+  .kicker{letter-spacing:.32em;font-size:11px;color:var(--gold);text-transform:uppercase}
+  h1{font-family:'Limelight',Georgia,serif;font-weight:400;font-size:28px;line-height:1.1;margin:10px 0 6px}
+  #btype{font-size:13px;letter-spacing:.22em;text-transform:uppercase;color:var(--gold)}
+  #bera{font-size:12px;letter-spacing:.12em;color:var(--muted);margin-top:3px}
+  #bdesc{font-size:14px;line-height:1.5;color:#d6cebd;margin:10px 0 0;font-weight:300}
+  #progress{height:2px;background:rgba(255,255,255,.08)}
+  #progress div{height:100%;width:0;background:var(--gold);transition:width .5s}
+  #steps{list-style:none;margin:0;padding:6px 0;overflow-y:auto;flex:1;scrollbar-width:thin;scrollbar-color:var(--gold-dim) transparent}
+  #steps li{padding:9px 24px;cursor:pointer;opacity:.38;transition:opacity .4s,background .4s}
+  #steps li:hover{opacity:.75}
+  #steps li.done{opacity:.72}
+  #steps li.active{opacity:1;background:linear-gradient(90deg,var(--gold-faint),transparent)}
+  #steps .row{display:flex;align-items:baseline;gap:10px}
+  #steps .num{font-family:'Limelight',serif;color:var(--gold);min-width:34px;font-size:15px}
+  #steps .ttl{font-size:16px;letter-spacing:.04em}
+  #steps .desc{max-height:0;overflow:hidden;transition:max-height .6s ease,margin .4s;font-size:14px;line-height:1.55;color:#d8d0bf;padding-left:44px;font-weight:300}
+  #steps li.active .desc{max-height:320px;margin-top:6px}
+  footer{padding:12px 14px;border-top:1px solid var(--gold-dim);display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+  button,select{background:transparent;color:var(--text);border:1px solid var(--gold-dim);padding:8px 11px;font:inherit;font-size:13px;letter-spacing:.08em;cursor:pointer;border-radius:0}
+  select option{background:#15171c}
+  button:hover,select:hover{background:var(--gold-faint)}
+  button.on{background:rgba(212,175,106,.28)}
+  .grp{display:flex;gap:0}.grp button+button{border-left:none}
+  #caption{position:fixed;left:24px;bottom:22px;pointer-events:none;font-family:'Limelight',serif;font-size:26px;
+    text-shadow:0 2px 12px rgba(0,0,0,.6);color:#fff7e6;transition:opacity .5s;max-width:calc(100vw - 460px)}
+  #caption .n{color:var(--gold);margin-right:12px}
+  #seed{font-size:11px;letter-spacing:.2em;color:var(--muted);text-align:center;padding:0 0 10px}
+  #loading{position:fixed;inset:0;display:grid;place-items:center;background:#0f1115;font-family:'Limelight',serif;font-size:22px;letter-spacing:.2em;color:var(--gold);transition:opacity .6s}
+  @media (max-width:760px){
+    #panel{top:auto;left:8px;right:8px;bottom:8px;width:auto;height:46vh}
+    header{padding:12px 16px 8px} h1{font-size:21px;margin:4px 0} #bdesc{display:none}
+    #caption{left:16px;top:16px;bottom:auto;font-size:18px;max-width:calc(100vw - 32px)}
+    #steps li{padding:8px 16px}
+  }
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<div id="app"></div>
+<div id="caption"><span class="n" id="capNum"></span><span id="capTitle"></span></div>
+<aside id="panel">
+  <header>
+    <div class="kicker">The Anatomy of Art Deco</div>
+    <h1 id="bname">—</h1>
+    <div id="btype"></div>
+    <div id="bera"></div>
+    <p id="bdesc"></p>
+  </header>
+  <div id="progress"><div></div></div>
+  <ol id="steps"></ol>
+  <div id="seed"></div>
+  <footer>
+    <div class="grp">
+      <button id="prev" title="Previous element (←)">◀</button>
+      <button id="play" title="Play / pause (space)">❚❚</button>
+      <button id="next" title="Next element (→)">▶</button>
+      <button id="all" title="Show the finished building">▶▶</button>
+    </div>
+    <select id="type" title="Building type"></select>
+    <button id="new" title="Generate a new building (N)">New building</button>
+    <button id="night" title="Day / night (L)">☾ Night</button>
+    <button id="rotate" class="on" title="Auto-rotate">⟳</button>
+  </footer>
+</aside>
+<div id="loading">DRAFTING…</div>
+
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+
+const PI = Math.PI, V3 = THREE.Vector3;
+
+// ---------------------------------------------------------------- random
+let R = Math.random;
+function mulberry32(a){ return function(){ a|=0; a=a+0x6D2B79F5|0; let t=Math.imul(a^a>>>15,1|a); t=t+Math.imul(t^t>>>7,61|t)^t; return ((t^t>>>14)>>>0)/4294967296; }; }
+const rnd = (a=0,b=1) => a + R()*(b-a);
+const ri = (a,b) => Math.floor(rnd(a,b+1));
+const pick = a => a[Math.floor(R()*a.length)];
+const chance = p => R() < p;
+const clamp = (x,a,b) => Math.max(a, Math.min(b, x));
+
+// ---------------------------------------------------------------- the elements of Art Deco
+const ELEMENTS = {
+  massing:{t:'Monumental massing', d:'Art Deco begins with bold, simple geometric volumes arranged with strict axial symmetry. Before any ornament, the building must read as one powerful silhouette.'},
+  setbacks:{t:'Setbacks — the ziggurat', d:'New York\'s 1916 Zoning Resolution forced towers to step back as they rose so light could reach the street. Architects turned the rule into an aesthetic: the stepped "wedding-cake" profile, echoing Mesopotamian ziggurats and Mayan pyramids.'},
+  slab:{t:'Slab massing', d:'Instead of a pyramid the tower is a sheer, thin slab whose narrow ends step back in symmetric notches. Raymond Hood\'s Daily News (1930) and RCA Building (1933) defined this type.'},
+  piers:{t:'Vertical piers', d:'Continuous piers run unbroken from base to parapet, pulling the eye skyward. The corners are thickened so the mass looks carved from a single block. Verticality was the signature of the jazz-age tower.'},
+  windows:{t:'Recessed bays & spandrels', d:'Windows are grouped into vertical strips set back between the piers. The panels between floors — spandrels — are darkened or made of metal or terracotta, so the windows fuse into continuous vertical ribbons.'},
+  entrance:{t:'Monumental portal', d:'The entrance is a ceremony: a tall, stepped frame of receding planes, bronze doors and a decorative transom grille. It is where people actually touch the building, so it gets the richest detail.'},
+  chevrons:{t:'Chevrons & zigzags', d:'The zigzag is Deco\'s most recognisable motif. It merges the angular patterns of Aztec and Native American art with the energy of electricity and the machine — a frozen lightning bolt.'},
+  sunburst:{t:'Sunburst & fan', d:'Radiating rays — the rising sun — stood for optimism and modern energy. After Tutankhamun\'s tomb was opened in 1922, Egyptian sun motifs swept through design, from powder compacts to cinema façades.'},
+  crown:{t:'The crown', d:'The top of the tower became an advertisement in the sky, treated like jewellery: terraced, faceted, clad in metal and lit at night so the building could be recognised for miles.'},
+  spire:{t:'Spire & needle', d:'A tapering stainless needle or mast completes the vertical thrust. Spires were weapons in the race for height — the Chrysler Building\'s 38 m vertex was secretly assembled inside its crown and hoisted into place in 90 minutes.'},
+  metal:{t:'Machine-age metals', d:'Chrome, stainless steel, aluminium, bronze and gold leaf: new industrial materials were celebrated, not hidden. Metal caps the parapets and trims the edges, gleaming like a radiator grille.'},
+  gargoyles:{t:'Streamlined sculpture', d:'Figurative ornament is simplified into crisp geometric forms — eagles, hood ornaments, stylised animals — projecting from the corners like the mascots on a 1929 automobile.'},
+  lighting:{t:'Light as material', d:'Art Deco was the first architecture designed for electric light. Floodlights wash the upper setbacks, windows glow, and after dark the building becomes a beacon.'},
+  pylon:{t:'Vertical pylon', d:'A slender stepped tower breaks the horizontal façade and marks the entrance from blocks away. Derived from Egyptian temple gateways, the pylon was both a cinema\'s billboard and its emblem.'},
+  speedlines:{t:'Speed lines', d:'Triple horizontal bands — the "rule of three" — suggest motion and aerodynamics. They wrap around corners like the chrome trim of a locomotive or an ocean liner.'},
+  marquee:{t:'Marquee', d:'A projecting canopy ringed with chasing bulbs shelters the entrance and announces the programme. Going to the movies was itself a spectacle.'},
+  blade:{t:'Blade sign', d:'A tall vertical sign set perpendicular to the street spells the theatre\'s name. Readable from far down the avenue, it fused architecture with advertising.'},
+  neon:{t:'Neon', d:'Introduced to America in 1923, neon tubes outline edges and lettering in saturated colour. At night the architecture is redrawn in light.'},
+  glassblock:{t:'Glass block', d:'Translucent glass blocks admit light while keeping privacy, and glow from within at night. A new mass-produced material of the 1930s, ideal for curved walls.'},
+  streamline:{t:'Streamline curves', d:'In the 1930s Deco grew smoother: Streamline Moderne. Rounded corners inspired by aerodynamics, ships and trains make the building look as if it were moving.'},
+  eyebrows:{t:'Eyebrows', d:'Thin concrete ledges over the windows shade them from the subtropical sun. Wrapping the curves, they cast crisp horizontal shadows — a Miami Beach trademark.'},
+  ribbon:{t:'Ribbon & corner windows', d:'Windows become continuous horizontal ribbons that turn the corner, made possible by new structural frames. The corner, once solid, dissolves into glass.'},
+  portholes:{t:'Porthole windows', d:'Round windows borrowed from ocean liners — the most glamorous machines of the age — bring the nautical spirit ashore.'},
+  fin:{t:'Tower fin & signage', d:'A vertical fin rises above the roofline carrying the building\'s name: a beacon for passing motorists that echoes an aeroplane tail or a ship\'s funnel.'},
+  pastel:{t:'Tropical palette', d:'In Miami Beach, Deco went pastel: white stucco with accents of mint, flamingo pink, lavender and sun yellow — colours later revived in the 1980s preservation movement.'},
+  plinth:{t:'Plinth & ceremonial stair', d:'Civic buildings rise on a raised podium reached by a broad flight of steps, staging the citizen\'s ascent to the institutions of the state.'},
+  tower:{t:'Central tower', d:'A setback tower marks the centre of the symmetrical plan — a civic skyscraper that puts the city on its own skyline.'},
+  pilasters:{t:'Stripped classicism', d:'Classical columns are abstracted into flat fluted pilasters with no bases or capitals. "Stripped Classicism" kept the dignity of tradition while looking modern — the official style of 1930s government.'},
+  relief:{t:'Bas-relief panels', d:'Shallow carved panels show stylised figures, radiant beams and allegories of Justice, Industry or Progress. Sculpture is flattened and geometrised to sit flush with the wall.'},
+  inscription:{t:'Inscribed frieze', d:'Lettering in crisp geometric capitals is carved into the frieze. Typography itself became architectural ornament.'},
+  finials:{t:'Finials & eagles', d:'Stepped finials, lamps, flagpoles and abstract eagles punctuate the composition, turning the roofline and the forecourt into a set of geometric sculptures.'},
+  clock:{t:'Clock faces', d:'A tower clock with geometric markers: the machine age\'s obsession with time and punctuality made visible to the whole city.'},
+  dome:{t:'Stepped dome', d:'Deco palaces reinterpret the dome with a tall drum, ribbed profile and lantern. At Jodhpur\'s Umaid Bhawan Palace (1929–43), Art Deco fused with Indian forms.'},
+  loggia:{t:'Colonnaded loggia', d:'A rhythm of square, unadorned columns forms a shaded gallery: the classical colonnade reduced to pure geometry.'},
+  cupolas:{t:'Pavilions & cupolas', d:'Corner towers topped by small domed pavilions frame the composition — a Deco reinterpretation of Mughal chhatris and European palace pavilions.'},
+  garden:{t:'Axial garden', d:'Water and planting extend the building\'s axis of symmetry into the landscape; a long reflecting pool doubles the façade.'},
+  chimneys:{t:'Fluted chimneys', d:'Industrial necessities become monuments: chimneys treated as giant fluted columns, as at London\'s Battersea Power Station (1929–55).'},
+  brick:{t:'Decorative brickwork', d:'Brick and stone laid in patterns — zigzag bands, stepped corbels and stepped attics — make ornament out of the building material itself.'},
+  corner:{t:'Ziggurat corner towers', d:'Stepped towers anchor the four corners, giving an industrial building the presence of a temple.'},
+  fluting:{t:'Vertical fluting', d:'Tall brick fins run up the walls like the flutes of a column, emphasising height and casting rhythmic shadows.'},
+  canopy:{t:'Canopy entrance', d:'Instead of a stone portal, a thin curved concrete canopy is cantilevered over aluminium-framed doors and terrazzo steps — the entrance as a piece of streamlined industrial design.'},
+  ticket:{t:'Lobby & ticket booth', d:'A free-standing ticket booth in chrome and glass sits before a row of polished doors — a stage set for the street.'},
+};
+
+const CROWN_TEXT = {
+  arches:'Here: Chrysler-style tiers of stainless-steel sunburst arches pierced by triangular windows.',
+  mast:'Here: an Empire State-style cylindrical mast with ribbed drum and lantern — designed, optimistically, as a mooring for airships.',
+  terraced:'Here: a terraced lantern of shrinking cubes, each ringed with metal bands and slit windows.',
+  pyramid:'Here: a stepped pyramid alternating stone and gilded metal, in the manner of New York\'s gilded-roof towers.',
+};
+
+// ---------------------------------------------------------------- materials
+const METALS = { gold:[0xd9a94e,.28], bronze:[0x9a6434,.35], steel:[0xd0d4da,.16], aluminum:[0xc4c9cf,.3] };
+function std(color, rough=.8, metal=0, extra={}){
+  const m = new THREE.MeshStandardMaterial({ color, roughness:rough, metalness:metal, ...extra });
+  m.userData = { e:0, dI:0, nI:0 };
+  return m;
+}
+function emis(m, c, d, n){ m.userData.e=c; m.userData.dI=d; m.userData.nI=n; m.emissive.setHex(c); m.emissiveIntensity=d; return m; }
+function shade(hex, f){ return new THREE.Color(hex).multiplyScalar(f).getHex(); }
+
+function canvasTex(c){ const t=new THREE.CanvasTexture(c); t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=8; return t; }
+function glassBlockTex(){
+  const c=document.createElement('canvas'); c.width=c.height=128; const g=c.getContext('2d');
+  g.fillStyle='#8fa3a8'; g.fillRect(0,0,128,128);
+  for(let i=0;i<4;i++) for(let j=0;j<4;j++){
+    const gr=g.createRadialGradient(i*32+16,j*32+16,2,i*32+16,j*32+16,20);
+    gr.addColorStop(0,'#f4fbfc'); gr.addColorStop(1,'#a9c4cb');
+    g.fillStyle=gr; g.fillRect(i*32+2,j*32+2,28,28);
+  }
+  const t=canvasTex(c); t.wrapS=t.wrapT=THREE.RepeatWrapping; t.repeat.set(1,3); return t;
+}
+
+function makeMats(p){
+  const m = {};
+  m.stone = std(p.stone,.85); m.stone2 = std(p.stone2,.8); m.stone3 = std(p.stone3 ?? shade(p.stone,.82),.9);
+  m.accent = std(p.accent,.55); m.accent2 = std(p.accent2 ?? p.accent,.55);
+  m.spandrel = std(p.spandrel ?? 0x3a3a40,.5,.25);
+  const [mc,mr] = METALS[p.metal ?? 'gold']; m.metal = std(mc,mr,1);
+  m.door = std(0x3b2a1b,.32,.85);
+  m.glass = std(p.glass ?? 0x1b2733,.1,.6);
+  m.glassLit = emis(std(p.glass ?? 0x1b2733,.1,.6), 0xffc979, 0, 1.3);
+  m.crown = p.crownMetal ? std(mc,mr,1) : std(p.stone2,.7);
+  emis(m.crown, 0xffd7a0, 0, p.crownMetal ? .22 : .5);
+  m.neon = emis(std(p.neon ?? 0xff3d6e,.4), p.neon ?? 0xff3d6e, .7, 2.4); m.neon.userData.noShadow = true;
+  m.neon2 = emis(std(p.neon2 ?? 0x46e0ff,.4), p.neon2 ?? 0x46e0ff, .7, 2.4); m.neon2.userData.noShadow = true;
+  m.bulbA = emis(std(0xfff3c4,.3), 0xffe7a0, .6, 2.8); m.bulbA.userData.blink = 0; m.bulbA.userData.noShadow = true;
+  m.bulbB = emis(std(0xfff3c4,.3), 0xffe7a0, .6, 2.8); m.bulbB.userData.blink = PI; m.bulbB.userData.noShadow = true;
+  m.globe = emis(std(0xfff6dc,.3), 0xffe2a8, .15, 2.4);
+  m.water = std(0x2b5466,.05,.9);
+  m.hedge = std(0x4b6a38,.95); m.leaf = std(0x3f6b3a,.9); m.trunk = std(0x6b5440,.95);
+  m.copper = std(p.dome ?? 0x6fa58f,.45,.45);
+  m.white = std(0xefebe2,.75);
+  m.signbg = std(0x15151a,.5,.4);
+  const gb = glassBlockTex();
+  m.glassblock = emis(std(0xffffff,.25,.05,{ map:gb, emissiveMap:gb }), 0xfff0d0, 0, 1.0);
+  return m;
+}
+
+function signMaterial(text, fg, bg, cell=128){
+  const n=text.length, c=document.createElement('canvas'); c.width=cell; c.height=cell*n; const g=c.getContext('2d');
+  g.fillStyle=bg; g.fillRect(0,0,c.width,c.height);
+  g.textAlign='center'; g.textBaseline='middle'; g.font=`${cell*.74}px Limelight, Georgia, serif`;
+  for(let i=0;i<n;i++){ g.shadowColor=fg; g.shadowBlur=22; g.fillStyle=fg; g.fillText(text[i],cell/2,cell*i+cell*.55); }
+  g.shadowBlur=0; g.fillStyle='rgba(255,255,255,.75)';
+  for(let i=0;i<n;i++) g.fillText(text[i],cell/2,cell*i+cell*.55);
+  const t=canvasTex(c);
+  return emis(std(0xffffff,.5,0,{ map:t, emissiveMap:t }), 0xffffff, .75, 1.4);
+}
+function boardMaterial(text, w=1024, h=128, fg='#111', bg='#f5efe0', glow=true){
+  const c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d');
+  g.fillStyle=bg; g.fillRect(0,0,w,h);
+  let fs=h*.62; g.font=`${fs}px Limelight, Georgia, serif`;
+  while(g.measureText(text).width>w*.92 && fs>10){ fs-=2; g.font=`${fs}px Limelight, Georgia, serif`; }
+  g.textAlign='center'; g.textBaseline='middle'; g.fillStyle=fg; g.fillText(text,w/2,h*.54);
+  const t=canvasTex(c);
+  const m=std(0xffffff,.6,0,{ map:t });
+  if(glow){ m.emissiveMap=t; emis(m,0xffffff,.25,1.1); }
+  return m;
+}
+function carvedMaterial(text, stoneHex, w=2048, h=128){
+  const col=new THREE.Color(stoneHex), dark=col.clone().multiplyScalar(.55), light=col.clone().lerp(new THREE.Color(1,1,1),.25);
+  const c=document.createElement('canvas'); c.width=w; c.height=h; const g=c.getContext('2d');
+  g.fillStyle='#'+col.getHexString(); g.fillRect(0,0,w,h);
+  let fs=h*.6; g.font=`600 ${fs}px 'Josefin Sans', sans-serif`;
+  while(g.measureText(text).width>w*.94 && fs>10){ fs-=2; g.font=`600 ${fs}px 'Josefin Sans', sans-serif`; }
+  g.textAlign='center'; g.textBaseline='middle';
+  g.fillStyle='#'+light.getHexString(); g.fillText(text,w/2+2,h*.55+2);
+  g.fillStyle='#'+dark.getHexString(); g.fillText(text,w/2,h*.55);
+  return std(0xffffff,.85,0,{ map:canvasTex(c) });
+}
+function clockMaterial(){
+  const c=document.createElement('canvas'); c.width=c.height=256; const g=c.getContext('2d');
+  g.fillStyle='#f3ead2'; g.fillRect(0,0,256,256);
+  g.translate(128,128); g.strokeStyle='#2b2418'; g.fillStyle='#2b2418';
+  for(let i=0;i<12;i++){ g.save(); g.rotate(i*PI/6); g.fillRect(-5,-118,10,i%3===0?38:22); g.restore(); }
+  for(let i=0;i<8;i++){ g.save(); g.rotate(i*PI/4+PI/8); g.fillStyle='rgba(180,140,60,.5)'; g.beginPath(); g.moveTo(0,-30); g.lineTo(10,-70); g.lineTo(-10,-70); g.fill(); g.restore(); }
+  g.lineCap='round'; g.lineWidth=10; g.beginPath(); g.moveTo(0,0); g.lineTo(42,-40); g.stroke();
+  g.lineWidth=6; g.beginPath(); g.moveTo(0,0); g.lineTo(-10,-92); g.stroke();
+  g.beginPath(); g.arc(0,0,10,0,2*PI); g.fill();
+  const t=canvasTex(c);
+  return emis(std(0xffffff,.5,0,{ map:t, emissiveMap:t }), 0xfff1c8, 0, .9);
+}
+
+// ---------------------------------------------------------------- builder
+let B;
+class Builder {
+  constructor(mats){ this.mats=mats; this.steps=[]; this.cur=null; this.lights=[]; }
+  step(key, text){
+    const e = ELEMENTS[key] || { t:key, d:'' };
+    this.cur = { key, title:e.t, text: text ? (text.startsWith('+') ? e.d+' '+text.slice(1) : text) : e.d, buckets:new Map() };
+    this.steps.push(this.cur); return this.cur;
+  }
+  add(g, mk, m){
+    if(m) g.applyMatrix4(m);
+    if(g.index){ const n=g.toNonIndexed(); g.dispose(); g=n; }
+    for(const k of Object.keys(g.attributes)) if(k!=='position'&&k!=='normal'&&k!=='uv') g.deleteAttribute(k);
+    g.clearGroups();
+    let b=this.cur.buckets.get(mk); if(!b){ b=[]; this.cur.buckets.set(mk,b); } b.push(g);
+  }
+}
+function mergeBuckets(buckets, mats, group){
+  const out=[];
+  for(const [mk,list] of buckets){
+    const base=mats[mk]; if(!base){ console.warn('missing material',mk); continue; }
+    const geo=mergeGeometries(list,false); list.forEach(x=>x.dispose());
+    const mat=base.clone(); mat.userData={...base.userData};
+    const mesh=new THREE.Mesh(geo,mat); mesh.castShadow=!mat.userData.noShadow; mesh.receiveShadow=true;
+    group.add(mesh); out.push(mat);
+  }
+  return out;
+}
+
+// ---------------------------------------------------------------- geometry helpers
+function T(x=0,y=0,z=0,ry=0,rx=0,rz=0,sx=1,sy=1,sz=1){
+  return new THREE.Matrix4().compose(new V3(x,y,z), new THREE.Quaternion().setFromEuler(new THREE.Euler(rx,ry,rz,'YXZ')), new V3(sx,sy,sz));
+}
+function place(g, mk, ...ms){ const m=new THREE.Matrix4(); for(const x of ms) m.multiply(x); B.add(g,mk,m); }
+function box(mk,w,h,d,x,y,z,ry=0){ const g=new THREE.BoxGeometry(w,h,d); g.translate(0,h/2,0); B.add(g,mk,T(x,y,z,ry)); }
+function cyl(mk,rt,rb,h,x,y,z,seg=20){ const g=new THREE.CylinderGeometry(rt,rb,h,seg); g.translate(0,h/2,0); B.add(g,mk,T(x,y,z)); }
+function vol(x,z,w,d,y,h){ return { x,z,w,d,y,h }; }
+function massBox(v, mk='stone'){ box(mk,v.w,v.h,v.d,v.x,v.y,v.z); }
+// face frames: local u runs along the face (left→right seen from outside), v up from the volume base, z outwards
+function faceFrames(v){
+  return [
+    { m:T(v.x, v.y, v.z+v.d/2, 0),      len:v.w, side:'front' },
+    { m:T(v.x+v.w/2, v.y, v.z, PI/2),   len:v.d, side:'right' },
+    { m:T(v.x, v.y, v.z-v.d/2, PI),     len:v.w, side:'back'  },
+    { m:T(v.x-v.w/2, v.y, v.z, -PI/2),  len:v.d, side:'left'  },
+  ];
+}
+function frame(x,y,z,ry=0){ return { m:T(x,y,z,ry), len:0, side:'free' }; }
+function fbox(mk,f,w,h,d,u,v,z,rz=0){ const g=new THREE.BoxGeometry(w,h,d); g.translate(0,h/2,0); place(g,mk,f.m,T(u,v,z,0,0,rz)); }
+function fgeo(g,mk,f,u,v,z,rz=0){ place(g,mk,f.m,T(u,v,z,0,0,rz)); }
+function seg(mk,a,b,r=.07,s=6){
+  const d=new V3().subVectors(b,a), L=d.length(); if(L<1e-4) return;
+  const g=new THREE.CylinderGeometry(r,r,L,s,1);
+  const q=new THREE.Quaternion().setFromUnitVectors(new V3(0,1,0), d.normalize());
+  B.add(g,mk,new THREE.Matrix4().compose(a.clone().add(b).multiplyScalar(.5), q, new V3(1,1,1)));
+}
+function rrShape(w,d,r){
+  r=Math.max(.05,Math.min(r,w/2-.01,d/2-.01));
+  const s=new THREE.Shape(), x=-w/2, y=-d/2;
+  s.moveTo(x+r,y); s.lineTo(x+w-r,y); s.absarc(x+w-r,y+r,r,-PI/2,0,false);
+  s.lineTo(x+w,y+d-r); s.absarc(x+w-r,y+d-r,r,0,PI/2,false);
+  s.lineTo(x+r,y+d); s.absarc(x+r,y+d-r,r,PI/2,PI,false);
+  s.lineTo(x,y+r); s.absarc(x+r,y+r,r,PI,1.5*PI,false);
+  return s;
+}
+function rbox(mk,w,d,h,r,x,y,z){
+  const g=new THREE.ExtrudeGeometry(rrShape(w,d,r),{ depth:h, bevelEnabled:false, curveSegments:10 });
+  g.rotateX(-PI/2); B.add(g,mk,T(x,y,z));
+}
+function rring(mk,wo,dd,ro,inset,h,x,y,z){
+  const s=rrShape(wo,dd,ro); s.holes.push(rrShape(wo-2*inset,dd-2*inset,Math.max(.1,ro-inset)));
+  const g=new THREE.ExtrudeGeometry(s,{ depth:h, bevelEnabled:false, curveSegments:10 });
+  g.rotateX(-PI/2); B.add(g,mk,T(x,y,z));
+}
+function chevronShape(s,h){
+  const sh=new THREE.Shape();
+  sh.moveTo(-s/2,0); sh.lineTo(0,h*.55); sh.lineTo(s/2,0); sh.lineTo(s/2,h*.42); sh.lineTo(0,h); sh.lineTo(-s/2,h*.42); sh.closePath();
+  return sh;
+}
+function eagleShape(){
+  const s=new THREE.Shape();
+  s.moveTo(-.3,0); s.lineTo(.9,.05); s.lineTo(1.5,.3); s.lineTo(1.78,.24); s.lineTo(1.62,.5); s.lineTo(1.25,.62);
+  s.lineTo(1.05,.98); s.lineTo(.55,1.08); s.lineTo(.3,.85); s.lineTo(0,.95); s.lineTo(-.3,.8); s.closePath();
+  return s;
+}
+
+// ---------------------------------------------------------------- Deco vocabulary
+function piers(v,bay,mk,o={}){
+  const pd=o.depth??.34, ext=o.ext??0, ratio=o.ratio??.26;
+  for(const f of faceFrames(v)){
+    const n=Math.max(2,Math.round(f.len/bay)), b=f.len/n;
+    for(let i=0;i<=n;i++){
+      const corner=i===0||i===n, pw=corner?b*Math.max(.36,ratio):b*ratio;
+      let u=-f.len/2+i*b; if(corner) u+= i===0?pw/2:-pw/2;
+      const v0=o.cut?o.cut(f.side,u):0;
+      if(v.h+ext-v0>.1) fbox(mk,f,pw,v.h+ext-v0,pd,u,v0,pd/2-.02);
+    }
+  }
+}
+function windows(v,bay,fh,o={}){
+  const start=o.start??.3, end=o.end??.5, wr=o.wr??.6, hr=o.hr??.6, sp=o.spandrel===undefined?'spandrel':o.spandrel, lit=o.lit??.4;
+  const nf=Math.floor((v.h-start-end)/fh+1e-6); if(nf<=0) return;
+  for(const f of faceFrames(v)){
+    const n=Math.max(2,Math.round(f.len/bay)), b=f.len/n;
+    for(let i=0;i<n;i++){
+      const u=-f.len/2+(i+.5)*b;
+      for(let j=0;j<nf;j++){
+        const y=start+j*fh;
+        if(o.skip&&o.skip(f.side,u,y)) continue;
+        fbox(R()<lit?'glassLit':'glass',f,b*wr,fh*hr,.1,u,y,.03);
+        if(sp) fbox(sp,f,b*wr,fh*(1-hr),.09,u,y+fh*hr,.02);
+      }
+    }
+  }
+}
+function chevronFrieze(v,y,h,mk,out=.36,o={}){
+  for(const f of faceFrames(v)){
+    if(o.only&&!o.only.includes(f.side)) continue;
+    const len=o.len?o.len(f):f.len;
+    fbox(o.band??'stone2',f,len+(o.len?0:2*out),h,out,0,y,out/2);
+    const n=Math.max(3,Math.floor(len/(h*1.15))), s=len/n;
+    const g0=new THREE.ExtrudeGeometry(chevronShape(s*.86,h*.8),{ depth:.12, bevelEnabled:false });
+    for(let i=0;i<n;i++) fgeo(g0.clone(),mk,f,-len/2+(i+.5)*s,y+h*.1,out);
+    g0.dispose();
+  }
+}
+function sunburst(f,u,v,Rr,o={}){
+  const rays=o.rays??13, mats=o.mats??['metal','stone2'], out=o.out??.1, depth=o.depth??.08, r0=o.r0??Rr*.22, half=o.half??true;
+  const tot=half?PI:2*PI;
+  for(let k=0;k<rays;k++){
+    const a0=k/rays*tot, a1=(k+1)/rays*tot, gap=(a1-a0)*.12, RR=k%2?Rr*.8:Rr;
+    const sh=new THREE.Shape();
+    sh.moveTo(r0*Math.cos(a0+gap),r0*Math.sin(a0+gap)); sh.lineTo(RR*Math.cos(a0+gap),RR*Math.sin(a0+gap));
+    sh.lineTo(RR*Math.cos(a1-gap),RR*Math.sin(a1-gap)); sh.lineTo(r0*Math.cos(a1-gap),r0*Math.sin(a1-gap)); sh.closePath();
+    fgeo(new THREE.ExtrudeGeometry(sh,{ depth:depth*(k%2?1:1.6), bevelEnabled:false }),mats[k%2],f,u,v,out);
+  }
+  const c=new THREE.Shape(), rc=r0*.85;
+  if(half){ c.moveTo(rc,0); c.absarc(0,0,rc,0,PI,false); c.closePath(); } else c.absarc(0,0,rc,0,2*PI,false);
+  fgeo(new THREE.ExtrudeGeometry(c,{ depth:depth*2, bevelEnabled:false, curveSegments:16 }),mats[0],f,u,v,out);
+}
+// stepped (splayed) portal; returns total height of the frame
+function portal(f,u,w,h,o={}){
+  const st=o.steps??3, t=o.t??.55, base=o.out??.4, mk=o.mat??'stone2';
+  for(let s=0;s<st;s++){
+    const k=st-s, ww=w+2*t*k, hh=h+t*k, dz=base+.22*k;
+    fbox(mk,f,t,hh,dz,u-ww/2+t/2,0,dz/2); fbox(mk,f,t,hh,dz,u+ww/2-t/2,0,dz/2); fbox(mk,f,ww,t,dz,u,hh-t,dz/2);
+  }
+  const dh=h*.62;
+  fbox('door',f,w,dh,.3,u,0,.15);
+  const nd=Math.max(2,Math.round(w/1.3));
+  for(let i=0;i<=nd;i++) fbox('metal',f,.12,dh,.36,u-w/2+i*w/nd,0,.18);
+  fbox('metal',f,w,.12,.36,u,dh*.5,.18);
+  fbox('spandrel',f,w,h-dh,.25,u,dh,.12);
+  sunburst(f,u,dh+.12,Math.min(w/2,h-dh)*.92,{ rays:11, mats:['metal','metal'], out:.26, depth:.06 });
+  fbox('metal',f,w,.16,.42,u,dh,.21);
+  return h+t*st;
+}
+function relief(f,u,v,w,h,mk='stone2',ak='metal'){
+  fbox(mk,f,w,h,.22,u,v,.11);
+  fbox('stone',f,w-.3,h-.3,.06,u,v+.15,.25);
+  const z=.31;
+  fbox(ak,f,w*.07,h*.5,.12,u,v+h*.12,z);
+  fbox(ak,f,w*.1,h*.11,.12,u,v+h*.66,z);
+  fbox(ak,f,w*.5,h*.05,.12,u,v+h*.1,z);
+  for(let i=0;i<5;i++){
+    const L=w*(.36-i*.055), y=v+h*(.6-i*.085);
+    for(const s of[-1,1]) fbox(ak,f,L,h*.045,.1,u+s*(w*.06+L/2),y,z);
+  }
+  sunburst(f,u,v+h*.66,h*.3,{ rays:9, mats:[ak,mk], out:.28, depth:.04 });
+}
+function cornerFinials(v,y,s,mk='stone2',mk2='accent'){
+  for(const sx of[-1,1]) for(const sz of[-1,1]){
+    const x=v.x+sx*(v.w/2-s/2), z=v.z+sz*(v.d/2-s/2); let yy=y;
+    box(mk,s,s*.9,s,x,yy,z); yy+=s*.9; box(mk,s*.7,s*.8,s*.7,x,yy,z); yy+=s*.8; box(mk2,s*.42,s*.9,s*.42,x,yy,z);
+  }
+}
+function finial(x,y,z,s,mk='stone2'){
+  let yy=y; box(mk,s,s*.7,s,x,yy,z); yy+=s*.7; box(mk,s*.75,s*.7,s*.75,x,yy,z); yy+=s*.7;
+  box('metal',s*.45,s*1.1,s*.45,x,yy,z); yy+=s*1.1; cyl('metal',0,s*.28,s*.8,x,yy,z,8);
+}
+function coping(v,y,over=.55,t=.8){
+  const W=v.w+over*2, D=v.d+over*2;
+  for(const s of[-1,1]){ box('metal',W,.22,t,v.x,y,v.z+s*(D/2-t/2)); box('metal',t,.22,D-2*t,v.x+s*(W/2-t/2),y,v.z); }
+}
+function steppedAttic(mk,x,y,z,w,d,h,k=3){ for(let i=0;i<k;i++) box(mk,w*(1-i/k),h,d,x,y+i*h,z); return y+k*h; }
+function gargoyles(v,y,s){
+  for(const sx of[-1,1]) for(const sz of[-1,1]){
+    const g=new THREE.ExtrudeGeometry(eagleShape(),{ depth:.5, bevelEnabled:false }); g.translate(0,0,-.25);
+    B.add(g,'metal',T(v.x+sx*v.w/2,y,v.z+sz*v.d/2,Math.atan2(-sz,sx),0,0,s,s,s));
+  }
+}
+function eagle(x,y,z,ry,s){
+  const g=new THREE.ExtrudeGeometry(eagleShape(),{ depth:.6, bevelEnabled:false }); g.translate(-.6,0,-.3);
+  B.add(g,'metal',T(x,y,z,ry,0,0,s,s,s));
+  const w=new THREE.Shape(); w.moveTo(0,0); w.lineTo(1.4,.9); w.lineTo(1.3,.5); w.lineTo(.2,-.1); w.closePath();
+  for(const sd of[-1,1]){ const g2=new THREE.ExtrudeGeometry(w,{ depth:.08, bevelEnabled:false }); B.add(g2,'metal',T(x,y+.5*s,z,ry+(sd>0?0:PI)+PI/2,0,0,s,s,s)); }
+}
+function lamp(x,y,z,h=3.2){
+  cyl('metal',.1,.16,h,x,y,z,8); box('metal',.5,.25,.5,x,y+h,z);
+  cyl('globe',.32,.22,.9,x,y+h+.25,z,12); cyl('metal',0,.3,.35,x,y+h+1.15,z,8);
+}
+function flagpole(x,y,z,h,mk='accent'){
+  cyl('metal',.06,.1,h,x,y,z,8); cyl('metal',.16,.16,.16,x,y+h,z,8);
+  box(mk,.04,1.2,2.0,x,y+h-1.6,z+1.0,PI/2*0);
+}
+function spire(x,y,z,L,r){
+  cyl('metal',.03,r,L,x,y,z,12);
+  for(const t of[.12,.3,.5]) cyl('metal',r*(1-t)*1.7,r*(1-t)*1.7,.25,x,y+L*t,z,12);
+}
+function addSpot(px,py,pz,tx,ty,tz,color,I,angle=.42){
+  const L=new THREE.SpotLight(color,0,Math.hypot(tx-px,ty-py,tz-pz)*1.6,angle,.65,0);
+  L.position.set(px,py,pz); L.target.position.set(tx,ty,tz); L.userData.I=I; B.lights.push(L);
+}
+function addPoint(x,y,z,color,I,dist){
+  const L=new THREE.PointLight(color,0,dist,0); L.position.set(x,y,z); L.userData.I=I; B.lights.push(L);
+}
+
+// ---------------------------------------------------------------- crowns
+const CROWNS = {
+  arches(y,s){
+    let w=s*.82, yy=y; const k=ri(4,6);
+    box('crown',w*1.08,1.2,w*1.08,0,yy,0); yy+=1.2;
+    for(let i=0;i<k;i++){
+      const h=w*.38; box('crown',w,h,w,0,yy,0);
+      const v=vol(0,0,w,w,yy,h), Ro=w/2-.05, ro=Ro*.78;
+      const ring=new THREE.Shape(); ring.moveTo(Ro,0); ring.absarc(0,0,Ro,0,PI,false); ring.lineTo(-ro,0); ring.absarc(0,0,ro,PI,0,true); ring.closePath();
+      const nt=Math.max(5,Math.round(Ro*2.4));
+      for(const f of faceFrames(v)){
+        fgeo(new THREE.ExtrudeGeometry(ring,{ depth:.3, bevelEnabled:false, curveSegments:20 }),'crown',f,0,h,0);
+        for(let j=0;j<nt;j++){
+          const a=(j+.5)/nt*PI, da=PI/nt*.32, sh=new THREE.Shape();
+          sh.moveTo(Math.cos(a-da)*(Ro-.15),Math.sin(a-da)*(Ro-.15)); sh.lineTo(Math.cos(a+da)*(Ro-.15),Math.sin(a+da)*(Ro-.15));
+          sh.lineTo(Math.cos(a)*(ro+.1),Math.sin(a)*(ro+.1)); sh.closePath();
+          fgeo(new THREE.ExtrudeGeometry(sh,{ depth:.05, bevelEnabled:false }),'glassLit',f,0,h,.3);
+        }
+      }
+      yy+=h; w*=.76;
+    }
+    return yy;
+  },
+  mast(y,s){
+    let yy=y; const r=s*.24;
+    box('crown',s*.62,2.4,s*.62,0,yy,0); yy+=2.4;
+    box('crown',s*.48,2,s*.48,0,yy,0); yy+=2;
+    const h=7; cyl('crown',r,r,h,0,yy,0,28);
+    for(let i=0;i<16;i++){ const a=i/16*2*PI; box('metal',.32,h,.32,Math.sin(a)*r,yy,Math.cos(a)*r,a); }
+    for(let i=0;i<16;i++){ const a=(i+.5)/16*2*PI; box('glassLit',r*.22,h*.7,.1,Math.sin(a)*(r+.02),yy+h*.15,Math.cos(a)*(r+.02),a); }
+    yy+=h; cyl('metal',r*1.15,r*1.15,.4,0,yy,0,28); yy+=.4;
+    cyl('crown',r*.75,r*.8,3,0,yy,0,24); yy+=3;
+    cyl('glassLit',r*.55,r*.55,2.2,0,yy,0,20); yy+=2.2;
+    cyl('metal',r*.2,r*.6,1.2,0,yy,0,20); yy+=1.2;
+    return yy;
+  },
+  terraced(y,s){
+    let yy=y, w=s*.85;
+    for(let i=0;i<5;i++){
+      const h=2.2+(4-i)*.5; box('crown',w,h,w,0,yy,0);
+      const v=vol(0,0,w,w,yy,h);
+      for(const f of faceFrames(v)){
+        const n=Math.max(1,Math.round(w/1.6));
+        for(let j=0;j<n;j++) fbox('glassLit',f,w/n*.35,h*.6,.08,-w/2+(j+.5)*w/n,h*.2,.03);
+        fbox('metal',f,w+.2,.2,.3,0,h-.2,.1);
+      }
+      yy+=h; w*=.72;
+    }
+    return yy;
+  },
+  pyramid(y,s){
+    let yy=y; const n=8;
+    for(let i=0;i<n;i++){ const w=s*.9*(1-i/n), h=s*.09; box(i%2?'metal':'crown',w,h,w,0,yy,0); yy+=h; }
+    box('metal',s*.12,s*.18,s*.12,0,yy,0); yy+=s*.18;
+    cyl('glassLit',.4,.4,1.5,0,yy,0,12); yy+=1.5;
+    cyl('metal',0,.3,2.5,0,yy,0,8);
+    return yy+2.5;
+  },
+};
+
+// ---------------------------------------------------------------- palettes
+const PAL = {
+  sky:[
+    { name:'limestone & steel', stone:0xd8cfbd, stone2:0xc6baa4, accent:0x8b98a8, spandrel:0x3d434c, metal:'steel', crownMetal:true },
+    { name:'black brick & gold', stone:0x2c2c31, stone2:0x24242a, accent:0xc29a45, spandrel:0x1a1a1e, metal:'gold', crownMetal:true },
+    { name:'terracotta & bronze', stone:0xc78b62, stone2:0xb47750, accent:0xe6c79a, spandrel:0x5b3a28, metal:'bronze', crownMetal:false },
+    { name:'brick & limestone', stone:0x9b5a45, stone2:0xe0d3ba, accent:0xe0d3ba, spandrel:0x3b2c27, metal:'gold', crownMetal:false },
+    { name:'pale stone & gold', stone:0xe6dcc6, stone2:0xd4c6a8, accent:0xb9934f, spandrel:0x4a3d2b, metal:'gold', crownMetal:true },
+  ],
+  slab:[
+    { name:'white brick & russet', stone:0xd9d2c3, stone2:0xf0eadd, accent:0xb9934f, spandrel:0x6a2f28, metal:'gold' },
+    { name:'grey limestone & aluminium', stone:0xc7c0b2, stone2:0xe2dccd, accent:0x2f6e63, spandrel:0x26323a, metal:'aluminum' },
+    { name:'buff brick & bronze', stone:0xb98d6a, stone2:0xe8d8bc, accent:0x7a4a2a, spandrel:0x3a2a22, metal:'bronze' },
+  ],
+  theatre:[
+    { name:'cream stucco & red', stone:0xf1e6d0, stone2:0xc94b3c, stone3:0xcdbfa4, accent:0x1f5c6b, accent2:0xd9a441, metal:'steel', neon:0xff3d6e, neon2:0x4de1ff },
+    { name:'black vitrolite & gold', stone:0x1e1e24, stone2:0xe8dcc0, stone3:0x55504a, accent:0xc9a24a, accent2:0xc9a24a, metal:'gold', neon:0xff7a2a, neon2:0xffd23f },
+    { name:'faience & jade', stone:0xe8e2d6, stone2:0x2f6f62, stone3:0xbdb5a5, accent:0xd9a441, accent2:0x2f6f62, metal:'steel', neon:0x3dff9e, neon2:0xff4fd8 },
+    { name:'terracotta & teal', stone:0xd9a27c, stone2:0x2f6b78, stone3:0xa87a5c, accent:0xf1e0c0, accent2:0x2f6b78, metal:'bronze', neon:0xff4a3d, neon2:0x5dffef },
+  ],
+  civic:[
+    { name:'limestone & bronze', stone:0xd8cdb8, stone2:0xc4b79e, accent:0x8a6a3a, spandrel:0x5d4a32, metal:'bronze' },
+    { name:'grey granite & gold', stone:0xbfb9ad, stone2:0xa49d90, accent:0xb38a3c, spandrel:0x33363a, metal:'gold' },
+    { name:'sandstone & gold', stone:0xd9b98c, stone2:0xc4a172, accent:0x9c6b38, spandrel:0x4c3f30, metal:'gold' },
+  ],
+  palace:[
+    { name:'pink sandstone & gold', stone:0xe2b48f, stone2:0xcf9c76, accent:0xa8603d, spandrel:0x5a3a2a, metal:'gold', dome:0xd9a37e },
+    { name:'white stucco & verdigris', stone:0xf0ebe0, stone2:0xdcd3c0, accent:0x5f8f80, spandrel:0x37504a, metal:'gold', dome:0x6fa58f },
+    { name:'ochre & lapis', stone:0xe0c48e, stone2:0xcdac72, accent:0x2c4c8c, spandrel:0x2a3550, metal:'gold', dome:0x3a5c9c },
+  ],
+  power:[
+    { name:'red brick & stone', stone:0x8f4c37, stone2:0x7b3f2d, accent:0xd8c8a8, spandrel:0x2e2420, metal:'bronze' },
+    { name:'brown brick & cream', stone:0x7a4f3a, stone2:0x6a4232, accent:0xe8dcc0, spandrel:0x2a2420, metal:'bronze' },
+  ],
+};
+const PASTELS = [
+  { a:0x8fd3c4, b:0xf3a6b8, neon:0x3dffc5, neon2:0xff4f9a },
+  { a:0xf3a6b8, b:0x8fd3c4, neon:0xff4f9a, neon2:0x3dffc5 },
+  { a:0xb7a5e3, b:0xf5d589, neon:0xa970ff, neon2:0xffc93d },
+  { a:0xf5d589, b:0x86c5e8, neon:0xffc93d, neon2:0x3dc8ff },
+  { a:0x86c5e8, b:0xf3a6b8, neon:0x3dc8ff, neon2:0xff4f9a },
+];
+
+// ---------------------------------------------------------------- building types
+function buildSkyscraper(){
+  const pal=pick(PAL.sky); B=new Builder(makeMats(pal));
+  const bay=rnd(2.6,3.2);
+  let nw=2*ri(4,6)+1, nd=2*ri(3,5)+1;
+  const pod=vol(0,0,nw*bay,nd*bay,0,ri(7,11));
+  const tiers=[], nT=ri(3,5), total=ri(48,84);
+  const fr=[]; for(let i=0;i<nT;i++) fr.push(i===0?rnd(1.6,2.4):rnd(.6,1)*(1-i*.12));
+  const fs=fr.reduce((a,b)=>a+b); let y=pod.h;
+  for(let i=0;i<nT;i++){
+    if(nw>3) nw-=nw>7&&chance(.5)?4:2;
+    if(nd>3) nd-=nd>7&&chance(.4)?4:2;
+    nw=Math.max(3,nw); nd=Math.max(3,nd);
+    const h=Math.max(4,Math.round(total*fr[i]/fs));
+    tiers.push(vol(0,0,nw*bay,nd*bay,y,h)); y+=h;
+  }
+  const all=[pod,...tiers], top=tiers[tiers.length-1], ext=.6;
+  const pW=bay*1.8, pH=Math.min(pod.h-2.2,rnd(5,7));
+  const inPortal=(s,u)=>s==='front'&&Math.abs(u)<pW/2+1.4;
+  const cutF=(s,u)=>inPortal(s,u)?pH+2.2:0;
+
+  B.step('massing','+Here the podium fills the street block and a single shaft rises from it.'); massBox(pod); massBox(tiers[0]);
+  B.step('setbacks'); tiers.slice(1).forEach(v=>massBox(v));
+  B.step('piers'); all.forEach((v,i)=>piers(v,bay,'stone2',{ ext, cut:i===0?cutF:null }));
+  B.step('windows'); all.forEach((v,i)=>windows(v,bay,1,{ start:i===0?1.4:.4, end:.8, skip:i===0?(s,u,yy)=>inPortal(s,u)&&yy<pH+2.2:null }));
+  B.step('entrance'); portal(faceFrames(pod)[0],0,pW,pH,{ steps:3 });
+  B.step('chevrons'); all.forEach((v,i)=>{ chevronFrieze(v,v.h-.8,1.4,'accent',.36); if(i<all.length-1) cornerFinials(v,v.y+v.h+ext,bay*.6); });
+  const cv=pick(['arches','mast','terraced','pyramid']), ct=top.y+top.h+ext, s=Math.min(top.w,top.d);
+  B.step('crown','+'+CROWN_TEXT[cv]); const cy=CROWNS[cv](ct,s);
+  if(cv!=='pyramid'){ B.step('spire'); spire(0,cy,0,s*rnd(.5,.9),.5); }
+  B.step('metal'); all.forEach(v=>coping(v,v.y+v.h+ext));
+  const gt=tiers[Math.min(1,tiers.length-1)];
+  B.step('gargoyles'); gargoyles(gt,gt.y+gt.h-1.6,bay*.55);
+  const lt=tiers[Math.max(0,tiers.length-2)], ly=lt.y+lt.h+ext+.22;
+  B.step('lighting').focusAll=true;
+  for(const sx of[-1,1]) for(const sz of[-1,1]){
+    const x=sx*(lt.w/2-.8), z=sz*(lt.d/2-.8); box('metal',.7,.5,.7,x,ly,z);
+    addSpot(x,ly+.5,z,0,(ct+cy)/2,0,0xffd9a0,3.2);
+  }
+  addSpot(0,1,pod.d/2+16,0,pH,pod.d/2,0xffe2b0,2.2,.5);
+  return { name:pick(['Chanin','Meridian','Continental','Lefcourt','Sterling','Atlas','Zenith','Halcyon','Vanguard','Aurora','Monarch','Fuller','Bowery Savings','Mercury'])+pick([' Building',' Tower',' Building']), palette:pal.name };
+}
+
+function buildSlab(){
+  const pal=pick(PAL.slab); B=new Builder(makeMats(pal));
+  const bay=rnd(2.2,2.7), podH=ri(10,12);
+  const nc=2*ri(3,5)+1, nd=2*ri(2,3)+1, H=ri(70,96);
+  const core=vol(0,0,nc*bay,nd*bay,podH,H);
+  const sides=[]; let xo=core.w/2, hh=H; const k=ri(2,3);
+  for(let i=0;i<k;i++){
+    const sw=bay*ri(2,3); hh=Math.round(hh*rnd(.7,.84)); const dd=Math.max(3,nd-(i>0?2:0))*bay;
+    sides.push(vol(xo+sw/2,0,sw,dd,podH,hh), vol(-(xo+sw/2),0,sw,dd,podH,hh)); xo+=sw;
+  }
+  const pod=vol(0,0,xo*2+bay*4,core.d+bay*8,0,podH);
+  const all=[pod,core,...sides], ext=.5;
+  const pW=bay*2.2, pH=Math.min(podH-4.2,5.5);
+  const inP=(s,u)=>s==='front'&&Math.abs(u)<pW/2+2;
+
+  B.step('massing','+A broad podium holds the street line; above it rises the core of the slab.'); massBox(pod); massBox(core);
+  B.step('slab'); sides.forEach(v=>massBox(v));
+  B.step('piers','+Here the piers are wide and pale against dark spandrels, so the whole slab reads as stripes.');
+  all.forEach((v,i)=>piers(v,bay,'stone2',{ ext, ratio:i===0?.3:.46, cut:i===0?(s,u)=>inP(s,u)?podH:0:null }));
+  B.step('windows'); all.forEach((v,i)=>windows(v,bay,1,{ start:i===0?1.2:.3, end:.6, wr:.5, skip:i===0?(s,u)=>inP(s,u):null }));
+  const pf=faceFrames(pod)[0];
+  B.step('entrance'); const fh=portal(pf,0,pW,pH,{ steps:3, t:.5 });
+  B.step('relief','+Above the portal, a gilded allegory in the manner of Lee Lawrie\'s "Wisdom" at 30 Rockefeller Plaza.');
+  relief(pf,0,fh+.3,pW+2.6,podH-fh-.9);
+  const ct=podH+H+ext;
+  B.step('crown','+On a slab the crown is restrained: a stepped attic, a metal frieze and a glazed observation deck.');
+  chevronFrieze(core,H-1,1.4,'metal',.36);
+  sides.forEach(v=>chevronFrieze(v,v.h-.8,1.2,'accent',.36));
+  let ty=steppedAttic('stone2',0,ct,0,core.w*.62,core.d*.8,1.3,3);
+  box('glassLit',core.w*.22,1.6,core.d*.5,0,ty,0); box('metal',core.w*.26,.25,core.d*.56,0,ty+1.6,0);
+  B.step('metal'); all.forEach(v=>coping(v,v.y+v.h+ext));
+  for(const sx of[-1,1]) for(const sz of[-1,1]) finial(sx*(pod.w/2-1.2),podH+ext+.22,sz*(pod.d/2-1.2),1.2);
+  B.step('lighting').focusAll=true;
+  for(const sx of[-1,1]) for(const sz of[-1,1]) addSpot(sx*(pod.w/2-3),podH+1,sz*(core.d/2+4),0,ct,0,0xfff0d0,2.6,.35);
+  addSpot(0,1,pod.d/2+16,0,fh,pod.d/2,0xffe2b0,2.2,.5);
+  return { name:pick(['Rockwell','News','Radio','Graybar','Daily Courier','Telephone','Mutual','Union Carbide','Excelsior'])+' Building', palette:pal.name };
+}
+
+function buildTheatre(){
+  const pal=pick(PAL.theatre); B=new Builder(makeMats(pal));
+  const name=pick(['ROXY','RIO','ODEON','REX','LUX','PARAMOUNT','MAJESTIC','ORPHEUM','STRAND','REGAL','ASTOR','RITZ','EMBASSY','ALHAMBRA','CAPITOL','STATE','PALLADIUM','EMPIRE']);
+  const film=pick(['METROPOLIS','KING KONG','TOP HAT','CITY LIGHTS','GRAND HOTEL','42ND STREET','FLYING DOWN TO RIO','THE THIN MAN','MODERN TIMES','SWING TIME','DRACULA','FRANKENSTEIN','IT HAPPENED ONE NIGHT','SHALL WE DANCE']);
+  B.mats.sign=signMaterial(name,'#'+new THREE.Color(pal.neon).getHexString(),'#16161b');
+  B.mats.board=boardMaterial('NOW SHOWING · '+film);
+  const W=rnd(26,34), H=rnd(12,14.5), Dl=8, rounded=chance(.5), r=3;
+  const lobby=vol(0,0,W,Dl,0,H), aud=vol(0,-Dl/2-13,W*.92,26,0,H*rnd(1.15,1.35));
+  const pw=rnd(4,5.2), pd=3, pY0=6.4, signH=name.length*2.0, pyMain=signH+1.6+pw*.95;
+  const pz=Dl/2+pd/2-1, fF=faceFrames(lobby)[0];
+  const half=rounded?W/2-r:W/2;
+
+  B.step('massing','+A cinema is two boxes: a plain auditorium behind and a showy lobby block facing the street.');
+  massBox(aud,'stone3'); rounded?rbox('stone',W,Dl,H,r,0,0,0):massBox(lobby);
+  B.step('pylon');
+  const pv=vol(0,pz,pw,pd,pY0,pyMain); massBox(pv,'stone2');
+  let yy=pY0+pyMain, ww=pw, dd=pd;
+  for(let k=0;k<3;k++){ ww*=.76; dd*=.86; const hh=1.4-k*.3; box('stone2',ww,hh,dd,0,yy,pz); yy+=hh; }
+  const pf=faceFrames(pv)[0];
+  for(const s of[-1,1]) for(let k=0;k<2;k++) fbox('accent',pf,.22,pyMain-1.6,.35,s*(pw/2-.45-k*.45),.8,.17);
+  for(let k=0;k<3;k++) box('stone2',pw*(.92-k*.2),.45,pd*(.9-k*.2),0,pY0-.45*(k+1),pz-k*.2);
+  B.step('speedlines');
+  for(let k=0;k<3;k++){ const y=H-2.6+k*.6; rounded?rbox('accent',W+.3,Dl+.3,.18,r+.15,0,y,0):box('accent',W+.3,.18,Dl+.3,0,y,0); }
+  B.step('glassblock');
+  for(const s of[-1,1]) fbox('glassblock',fF,2.2,H-3.2-(pY0+.4),.12,s*(pw/2+2.4),pY0+.4,.06);
+  B.step('chevrons','+Here a stepped, zigzag parapet climbs toward the pylon.');
+  const segs=4, segW=(half-pw/2)/segs;
+  for(const s of[-1,1]) for(let k=0;k<segs;k++) box('stone',segW,2.2-k*.5,1.2,s*(pw/2+segW*(k+.5)),H,Dl/2-.6);
+  chevronFrieze(lobby,H-1.2,1.0,'accent2',.3,{ only:['front'], len:()=>half*2 });
+  B.step('sunburst');
+  sunburst(pf,0,signH+1.6,pw*.42,{ rays:13, mats:['metal','accent'], out:.36 });
+  for(const s of[-1,1]) sunburst(fF,s*W*.35,pY0+.5,2,{ rays:11, mats:['metal','accent2'], out:.1 });
+  B.step('ticket');
+  const nd=6;
+  for(const s of[-1,1]) for(let i=0;i<nd/2;i++){
+    const u=s*(2.6+i*1.5); fbox('door',fF,1.3,3.2,.14,u,0,.07); fbox('metal',fF,1.5,.16,.2,u,3.2,.1);
+  }
+  const bz=Dl/2+2.6; cyl('metal',1.25,1.25,.4,0,0,bz,24); cyl('glassLit',1,1,2.3,0,.4,bz,24); cyl('metal',1.35,1.1,.5,0,2.7,bz,24); cyl('metal',0,.25,.8,0,3.2,bz,8);
+  box('stone2',W*.6,.06,6,0,0,Dl/2+3);
+  B.step('marquee');
+  const cw=W*.62, cdp=6, y0=4.4, th=1.6, zf=Dl/2+cdp;
+  rounded?rbox('stone2',cw,cdp,th,1.4,0,y0,Dl/2+cdp/2):box('stone2',cw,th,cdp,0,y0,Dl/2+cdp/2);
+  const bf=frame(0,y0+.25,zf+.01); { const g=new THREE.PlaneGeometry(cw-(rounded?3:1.2),th-.5); g.translate(0,(th-.5)/2,0); fgeo(g,'board',bf,0,0,0); }
+  for(const s of[-1,1]){ const g=new THREE.PlaneGeometry(cdp-(rounded?3:1.2),th-.5); g.translate(0,(th-.5)/2,0); fgeo(g,'board',frame(s*(cw/2+.01),y0+.25,Dl/2+cdp/2,s*PI/2),0,0,0); }
+  const bulb=new THREE.SphereGeometry(.11,6,4); let bi=0;
+  for(const yb of[y0-.05,y0+th+.05]){
+    for(let x=-cw/2+.4;x<=cw/2-.4;x+=.45) B.add(bulb.clone(),bi++%2?'bulbA':'bulbB',T(x,yb,zf+.05));
+    for(const s of[-1,1]) for(let z=Dl/2+.6;z<zf-.4;z+=.45) B.add(bulb.clone(),bi++%2?'bulbA':'bulbB',T(s*(cw/2+.05),yb,z));
+  }
+  addPoint(0,y0-1,Dl/2+4,0xffd9a0,3,16);
+  B.step('blade');
+  const bz0=pz+pd/2+1.2, by=pY0+.7;
+  box('signbg',.45,signH+.6,2.4,0,by,bz0);
+  for(const s of[-1,1]){ const g=new THREE.PlaneGeometry(2.1,signH); g.translate(0,signH/2,0); fgeo(g,'sign',frame(s*.235,by+.3,bz0,s*PI/2),0,0,0); }
+  steppedAttic('signbg',0,by+signH+.6,bz0,2.4,.45,.35,3);
+  B.step('neon');
+  const zb=bz0+1.2, zb2=bz0-1.2;
+  for(const s of[-1,1]){
+    seg('neon',new V3(s*.25,by,zb),new V3(s*.25,by+signH+.6,zb));
+    seg('neon',new V3(s*.25,by+signH+.6,zb),new V3(s*.25,by+signH+.6,zb2));
+    seg('neon2',new V3(s*pw/2,pY0,pz+pd/2+.05),new V3(s*pw/2,pY0+pyMain,pz+pd/2+.05));
+    for(let k=0;k<segs;k++){ const x0=s*(pw/2+segW*k), x1=s*(pw/2+segW*(k+1)), yt=H+2.2-k*.5+.05; seg('neon2',new V3(x0,yt,Dl/2+.05),new V3(x1,yt,Dl/2+.05)); }
+  }
+  seg('neon',new V3(-cw/2+.6,y0+th+.2,zf+.05),new V3(cw/2-.6,y0+th+.2,zf+.05),.06);
+  B.step('lighting').focusAll=true;
+  addSpot(-W*.6,.5,Dl/2+14,0,pY0+pyMain*.6,pz,0xffe0b0,2.2,.38);
+  addSpot(W*.6,.5,Dl/2+14,0,pY0+pyMain*.6,pz,0xffe0b0,2.2,.38);
+  return { name:name.charAt(0)+name.slice(1).toLowerCase()+' Theatre', palette:pal.name, sign:true };
+}
+
+function buildCivic(){
+  const pal=pick(PAL.civic); B=new Builder(makeMats(pal));
+  const bay=rnd(3,3.5), P=1.8;
+  const nc=2*ri(2,3)+1, nw=ri(3,5), D=bay*ri(7,9), H=rnd(14,17.5);
+  const center=vol(0,0,nc*bay,D,P,H), ww=nw*bay;
+  const wings=[vol(-(center.w/2+ww/2),-bay*.5,ww,D-bay,P,H*.72), vol(center.w/2+ww/2,-bay*.5,ww,D-bay,P,H*.72)];
+  const pavs=[];
+  if(chance(.65)){ const pw=bay*2, x=center.w/2+ww+pw/2; pavs.push(vol(-x,0,pw,D+bay*.4,P,H*.86), vol(x,0,pw,D+bay*.4,P,H*.86)); }
+  const totalW=center.w+2*ww+(pavs.length?4*bay:0), pl={ w:totalW+8, d:D+10 };
+  const vols=[center,...wings,...pavs];
+  const pW=bay*1.4, pH=H*.5;
+  const inP=(s,u)=>s==='front'&&Math.abs(u)<pW/2+1.8;
+  const tw0=Math.min(center.w*.55,D*.5), tz=-bay;
+  const tower=[vol(0,tz,tw0,tw0,P+H,rnd(9,15))];
+  tower.push(vol(0,tz,tw0*.78,tw0*.78,tower[0].y+tower[0].h,rnd(4,6)));
+  tower.push(vol(0,tz,tw0*.58,tw0*.58,tower[1].y+tower[1].h,3));
+
+  B.step('plinth');
+  box('stone2',pl.w,P,pl.d,0,0,0);
+  const N=9, sw=center.w*.85, z0=pl.d/2;
+  for(let k=1;k<N;k++) box('stone2',sw,P-P/N*k,.55,0,0,z0+.55*(k-.5));
+  for(const s of[-1,1]) box('stone2',1.4,P+.7,.55*(N-1)+.2,s*(sw/2+.7),0,z0+.55*(N-1)/2);
+  B.step('massing'); vols.forEach(v=>massBox(v));
+  B.step('tower'); tower.forEach(v=>massBox(v));
+  const capT=tower[2].y+tower[2].h; let capTop;
+  if(chance(.5)) capTop=steppedAttic('crown',0,capT,tz,tw0*.5,tw0*.5,.8,4);
+  else { cyl('crown',tw0*.2,tw0*.24,2.2,0,capT,tz,16); cyl('metal',0,tw0*.22,2.4,0,capT+2.2,tz,16); capTop=capT+4.6; }
+  B.step('pilasters');
+  vols.forEach((v,vi)=>{
+    for(const f of faceFrames(v)){
+      const n=Math.max(2,Math.round(f.len/bay)), b=f.len/n, pd=.45;
+      for(let i=0;i<=n;i++){
+        const corner=i===0||i===n, pw=corner?b*.3:b*.24; let u=-f.len/2+i*b; if(corner) u+=i===0?pw/2:-pw/2;
+        const v0=vi===0&&inP(f.side,u)?pH+2.6:0, hh=v.h-v0-.9; if(hh<.5) continue;
+        fbox('stone2',f,pw,hh,pd,u,v0,pd/2);
+        if(!corner) for(let k=0;k<4;k++) fbox('stone2',f,pw*.1,hh-.6,.1,u-pw*.36+k*pw*.24,v0+.3,pd+.03);
+        fbox('stone2',f,pw*1.25,.4,pd+.15,u,v0+hh,(pd+.15)/2); fbox('stone2',f,pw*1.05,.5,pd+.05,u,v0+hh+.4,(pd+.05)/2);
+      }
+    }
+  });
+  piers(tower[0],tw0/3,'stone2',{ ext:.4 });
+  B.step('windows','+Here the windows run two storeys tall between the pilasters, with bronze spandrels.');
+  vols.forEach((v,vi)=>{ const nf=v.h>13?3:2, fh=(v.h-1.2-2.8)/nf; windows(v,bay,fh,{ start:1.2, end:2.8, wr:.5, hr:.72, skip:vi===0?(s,u,y)=>inP(s,u)&&y<pH+2.6:null }); });
+  windows(tower[0],tw0/3,2.2,{ start:.6, end:2.2, wr:.45, hr:.7 });
+  const cf=faceFrames(center)[0];
+  B.step('entrance'); const fh=portal(cf,0,pW,pH,{ steps:4 });
+  B.step('relief');
+  relief(cf,0,fh+.2,pW+2.8,Math.min(3.2,H-fh-3.2));
+  wings.concat(pavs).forEach(v=>{ const f=faceFrames(v)[0], n=Math.max(2,Math.round(f.len/bay)), b=f.len/n;
+    for(let i=0;i<n;i++) relief(f,-f.len/2+(i+.5)*b,v.h-2.5,b*.6,1.6); });
+  B.step('inscription');
+  const text=pick(['LIBERTY · JUSTICE · PROGRESS','WISDOM AND KNOWLEDGE SHALL BE THE STABILITY OF THY TIMES','LAW · ORDER · INDUSTRY','THE PEOPLE ARE THE CITY','KNOWLEDGE IS POWER']);
+  B.mats.carved=carvedMaterial(text,pal.stone2);
+  fbox('stone2',cf,center.w+.4,1.6,.62,0,H-2.6,.31);
+  { const g=new THREE.PlaneGeometry(center.w*.9,1.1); g.translate(0,.55,0); fgeo(g,'carved',cf,0,H-2.35,.63); }
+  B.step('finials');
+  for(const sx of[-1,1]) for(const sz of[-1,1]) finial(sx*(tower[0].w/2-.8),tower[0].y+tower[0].h+.4,tz+sz*(tower[0].d/2-.8),1.2);
+  pavs.forEach(v=>eagle(v.x,v.y+v.h,v.z+v.d/2-1.5,-PI/2,1.6));
+  if(!pavs.length) wings.forEach(v=>eagle(v.x+Math.sign(v.x)*(v.w/2-1.5),v.y+v.h,v.z+v.d/2-1.5,-PI/2,1.4));
+  for(const s of[-1,1]){ lamp(s*(sw/2+.7),P+.7,z0+.55*(N-1)-.4,2.4); flagpole(s*(center.w/2+2),P,D/2+3,13); }
+  const hasClock=chance(.6);
+  if(hasClock){
+    B.step('clock'); B.mats.clock=clockMaterial();
+    const cr=tw0*.32;
+    for(const f of faceFrames(tower[0])){
+      fgeo(new THREE.CircleGeometry(cr,32),'clock',f,0,tower[0].h-cr-1,.42);
+      fgeo(new THREE.TorusGeometry(cr,.14,6,32),'metal',f,0,tower[0].h-cr-1,.44);
+    }
+  }
+  B.step('metal'); vols.forEach(v=>coping(v,v.y+v.h,.3)); tower.forEach(v=>coping(v,v.y+v.h+(v===tower[0]?.4:0),.3));
+  B.step('lighting').focusAll=true;
+  for(const s of[-1,1]) addSpot(s*center.w*.4,P+H+.3,tz+tw0*.9,0,capTop-4,tz,0xffe2b0,2.6,.32);
+  addSpot(-14,.5,z0+14,0,H*.6,D/2,0xfff0d0,1.6,.6); addSpot(14,.5,z0+14,0,H*.6,D/2,0xfff0d0,1.6,.6);
+  const city=pick(['Port Halcyon','New Meridian','Sterling City','Aurora','Kingsbridge','Westhaven','Lakeport']);
+  return { name:city+' '+pick(['City Hall','Hall of Justice','Public Library','County Courthouse','Municipal Building','Post Office']), palette:pal.name };
+}
+
+function buildPalace(){
+  const pal=pick(PAL.palace); B=new Builder(makeMats(pal));
+  const P=2.2, bay=rnd(2.6,3);
+  const nc=2*ri(3,4)+1, cw=nc*bay, cd=bay*ri(7,8), ch=rnd(11,13);
+  const center=vol(0,0,cw,cd,P,ch);
+  const nw=ri(5,7), ww=nw*bay, wd=bay*ri(5,6), wh=ch*.7;
+  const wings=[vol(-(cw/2+ww/2),-1,ww,wd,P,wh), vol(cw/2+ww/2,-1,ww,wd,P,wh)];
+  const tw=bay*3, tx=cw/2+ww+tw/2;
+  const towers=[vol(-tx,0,tw,tw,P,ch*1.05), vol(tx,0,tw,tw,P,ch*1.05)];
+  const vols=[center,...wings,...towers];
+  const ter={ w:2*tx+tw+12, d:cd+18, z:2 }, tf=ter.z+ter.d/2;
+  const pW=bay*1.3, pH=ch*.46;
+  const inP=(s,u)=>s==='front'&&Math.abs(u)<pW/2+1.4;
+
+  B.step('massing','+Here a raised terrace carries a central block, two long wings and end towers — perfectly symmetrical.');
+  box('stone2',ter.w,P,ter.d,0,0,ter.z);
+  for(let k=1;k<8;k++) box('stone2',cw*.7,P-P/8*k,.6,0,0,tf+.6*(k-.5));
+  vols.forEach(v=>massBox(v));
+  B.step('dome');
+  let y=P+ch; box('stone',cw*.72,1.4,cw*.72,0,y,0); y+=1.4;
+  const r=cw*.3, dh=r*.8;
+  cyl('stone',r,r,dh,0,y,0,32);
+  for(let i=0;i<16;i++){ const a=i/16*2*PI, b=a+PI/16;
+    box('glassLit',.55,dh*.55,.1,Math.sin(a)*(r+.02),y+dh*.2,Math.cos(a)*(r+.02),a);
+    box('stone2',.45,dh,.4,Math.sin(b)*r,y,Math.cos(b)*r,b); }
+  y+=dh; cyl('stone2',r*1.1,r*1.1,.5,0,y,0,32); y+=.5; cyl('stone2',r*.98,r*.98,.6,0,y,0,32); y+=.6;
+  const Rd=r*.95, Hd=Rd*rnd(1.05,1.35), prof=[];
+  for(let i=0;i<=20;i++){ const t=i/20; prof.push(new THREE.Vector2(Math.max(.001,Rd*Math.pow(Math.cos(t*PI/2),.85)),Hd*Math.sin(t*PI/2))); }
+  { const g=new THREE.LatheGeometry(prof,40); g.translate(0,y,0); B.add(g,'copper'); }
+  for(let k=0;k<12;k++){
+    const pts=[]; for(let i=0;i<=12;i++){ const t=i/12*.92; pts.push(new V3(Rd*Math.pow(Math.cos(t*PI/2),.85)+.06,Hd*Math.sin(t*PI/2),0)); }
+    B.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.13,5,false),'metal',T(0,y,0,k*PI/6));
+  }
+  y+=Hd*.96; cyl('stone2',Rd*.16,Rd*.19,1.8,0,y,0,12);
+  for(let i=0;i<8;i++){ const a=i/8*2*PI; box('glassLit',.3,1.1,.08,Math.sin(a)*Rd*.17,y+.35,Math.cos(a)*Rd*.17,a); }
+  y+=1.8; cyl('metal',.04,Rd*.14,Rd*.5,0,y,0,12);
+  B.step('windows','+Slender piers separate tall windows across every block.');
+  vols.forEach((v,vi)=>{ piers(v,bay,'stone2',{ ratio:.2, ext:.4, cut:vi===0?(s,u)=>inP(s,u)?pH+2:0:null });
+    windows(v,bay,3.6,{ start:1.2, end:1.8, wr:.5, hr:.68, spandrel:'accent', skip:vi===0?(s,u,yy)=>inP(s,u)&&yy<pH+2:null }); });
+  B.step('loggia');
+  wings.forEach(v=>{ const zc=v.z+v.d/2+2.2, n=Math.round(v.w/bay);
+    for(let i=0;i<=n;i++){ const x=v.x-v.w/2+i*v.w/n; box('stone2',.7,4.2,.7,x,P,zc); box('stone2',.95,.3,.95,x,P+3.9,zc); }
+    box('stone',v.w+.8,.6,2.9,v.x,P+4.2,zc-1.0); box('metal',v.w+.9,.12,3.0,v.x,P+4.8,zc-1.0); });
+  B.step('cupolas');
+  const cup=(x,z,s,y0)=>{ for(const a of[-1,1]) for(const b of[-1,1]) box('stone2',.4,2.6,.4,x+a*s/2,y0,z+b*s/2);
+    box('stone2',s+.8,.4,s+.8,x,y0+2.6,z); const g=new THREE.SphereGeometry(s*.55,20,10,0,2*PI,0,PI/2); g.translate(0,0,0); B.add(g,'copper',T(x,y0+3,z,0,0,0,1,1.3,1));
+    cyl('metal',.02,.18,1.4,x,y0+3+s*.7,z,8); };
+  towers.forEach(v=>{ box('stone',v.w*.7,1,v.d*.7,v.x,v.y+v.h,v.z); cup(v.x,v.z,v.w*.5,v.y+v.h+1); });
+  for(const sx of[-1,1]) for(const sz of[-1,1]) cup(sx*(cw/2-1.6),sz*(cd/2-1.6),2,P+ch);
+  B.step('chevrons');
+  vols.forEach(v=>chevronFrieze(v,v.h-.9,1.2,'accent',.36));
+  steppedAttic('stone',0,P+ch,cd/2-.6,cw*.5,1.2,1.0,3);
+  B.step('sunburst','+Here as a great fanlight over the entrance, echoed on the towers.');
+  const cf=faceFrames(center)[0];
+  sunburst(cf,0,pH+2.4,pW*1.15,{ rays:15, mats:['glassLit','metal'], out:.12, depth:.1 });
+  towers.forEach(v=>sunburst(faceFrames(v)[0],0,v.h-3.2,1.4,{ rays:9, mats:['metal','accent'], out:.4 }));
+  B.step('entrance'); portal(cf,0,pW,pH,{ steps:3 });
+  B.step('metal'); vols.forEach(v=>coping(v,v.y+v.h+.4,.4));
+  for(const s of[-1,1]) for(const z of[tf+5,tf+5+(ter.d>0?0:0)]) finial(s*(cw*.35+1),0,tf+4.6,1.0);
+  B.step('garden');
+  const L=rnd(36,52), pz0=tf+6;
+  box('stone2',8.6,.3,L+.6,0,0,pz0+L/2); box('water',8,.32,L,0,0,pz0+L/2);
+  for(let i=0;i<3;i++){ const z=pz0+L*(.2+.3*i); cyl('stone2',1.2,1.4,.6,0,0,z,16); cyl('water',.15,.3,2.6,0,.6,z,8); }
+  for(const s of[-1,1]){ box('hedge',1.2,1.1,L,s*7,0,pz0+L/2);
+    for(let z=pz0+2;z<pz0+L;z+=5){ cyl('trunk',.15,.2,.8,s*10,0,z,6); cyl('leaf',0,1,4.4,s*10,.8,z,8); } }
+  B.step('lighting').focusAll=true;
+  addSpot(-12,.5,tf+12,0,P+ch+dh+Hd*.5,0,0xffe0b0,2.4,.32); addSpot(12,.5,tf+12,0,P+ch+dh+Hd*.5,0,0xffe0b0,2.4,.32);
+  addSpot(0,.5,tf+30,0,P+ch*.5,0,0xfff0d0,1.4,.5);
+  return { name:pick(['Surya Mahal','Palais Lumière','Chandra Bhawan','Villa Aurore','Rajmahal Deco','Palais des Étoiles','Laxmi Niwas']), palette:pal.name };
+}
+
+function buildStreamline(){
+  const ps=pick(PASTELS);
+  const pal={ name:'white stucco & pastel', stone:0xf4f0e8, stone2:0xffffff, stone3:0xe8e2d6, accent:ps.a, accent2:ps.b, spandrel:0x8a8a8a, metal:'aluminum', neon:ps.neon, neon2:ps.neon2, glass:0x2a4152 };
+  B=new Builder(makeMats(pal));
+  const name=pick(['TIDES','SEASPRAY','STARLITE','CORAL REEF','AVALON','NEPTUNE','FLAMINGO','SUNRAY','BREAKERS','ZEPHYR','MARLIN','ATLANTIS']);
+  const nameNS=name.replace(/ /g,'');
+  B.mats.sign=signMaterial(nameNS,'#'+new THREE.Color(ps.neon).getHexString(),'#1b2433');
+  const fh=1.3, g0=2, floors=ri(3,5), H=g0+floors*fh+.9;
+  const W=rnd(26,34), D=rnd(13,16), r=rnd(2.6,3.8);
+  const body=vol(0,0,W,D,0,H), faces=faceFrames(body);
+  const tw=rnd(5,6.5), td=2.4, tz=D/2+td/2-.6, th=H+rnd(2,3.5);
+  const tv=vol(0,tz,tw,td,0,th), tf=faceFrames(tv)[0];
+  const rear=chance(.5);
+
+  B.step('streamline','+Here the whole block is a single rounded volume, like the hull of a liner.');
+  rbox('stone',W,D,H,r,0,0,0); if(rear) rbox('stone',W*.55,D*.6,H+fh*2,r*.8,0,0,-D*.22);
+  B.step('ribbon');
+  const lit=()=>R()<.45?'glassLit':'glass';
+  for(let j=0;j<floors;j++){
+    const y=g0+j*fh+.3, hh=fh*.52;
+    faces.forEach((f,i)=>{ const len=f.len-2*r, mk=lit(); fbox(mk,f,len,hh,.1,0,y,.03);
+      if(i%2===0) for(let u=-len/2;u<=len/2+.01;u+=1.5) fbox('metal',f,.08,hh,.16,u,y,.06); });
+    [[W/2-r,D/2-r,0],[-W/2+r,D/2-r,1.5*PI],[W/2-r,-D/2+r,.5*PI],[-W/2+r,-D/2+r,PI]].forEach(([x,z,t])=>{
+      const g=new THREE.CylinderGeometry(r+.03,r+.03,hh,12,1,true,t,PI/2); g.translate(0,hh/2,0); B.add(g,lit(),T(x,y,z)); });
+  }
+  if(rear) for(let j=floors;j<floors+2;j++){ const f=faceFrames(vol(0,-D*.22,W*.55,D*.6,0,H+fh*2))[0]; fbox(lit(),f,W*.55-2*r*.8,fh*.5,.1,0,g0+j*fh+.3,.03); }
+  faces.forEach((f,i)=>{ if(i%2===0) fbox('glass',f,f.len-2*r-(i===0?tw+6:0),1.3,.1,i===0?0:0,.3,.03); });
+  if(true){ const f=faces[0], half=(W-2*r)/2; for(const s of[-1,1]) fbox('glass',f,half-tw/2-3,1.3,.1,s*(tw/2+3+(half-tw/2-3)/2),.3,.03); }
+  B.step('eyebrows');
+  for(let j=0;j<floors;j++){ const y=g0+j*fh+.3+fh*.52+.08; rring('stone',W+1.5,D+1.5,r+.75,1.0,.12,0,y,0); }
+  B.step('fin');
+  rbox('stone',tw,td,th,.5,0,0,tz);
+  let ty=steppedAttic('stone',0,th,tz-.2,tw*.75,td*.8,.6,2);
+  const finH=rnd(7,9.5), finZ=tz-.2;
+  box('stone',.7,finH,3.2,0,ty,finZ);
+  const sh=Math.min(finH-.8,nameNS.length*1.5), cellW=Math.min(2.8,sh/nameNS.length);
+  for(const s of[-1,1]){ const g=new THREE.PlaneGeometry(cellW,sh); g.translate(0,sh/2,0); fgeo(g,'sign',frame(s*.36,ty+(finH-sh)/2,finZ+.3,s*PI/2),0,0,0); }
+  B.step('portholes');
+  for(let j=0;j<floors;j++){ const y=g0+j*fh+fh*.5;
+    const g=new THREE.CylinderGeometry(.5,.5,.12,20); g.rotateX(PI/2); fgeo(g,lit(),tf,0,y,.06);
+    fgeo(new THREE.TorusGeometry(.55,.09,6,20),'metal',tf,0,y,.12); }
+  B.step('speedlines');
+  for(let k=0;k<3;k++) rring('accent',W+.3,D+.3,r+.15,.6,.14,0,H-.55-k*.38,0);
+  for(const s of[-1,1]) for(let k=0;k<3;k++) fbox('accent',tf,.14,th-g0-.6,.1,s*(tw/2-.5-k*.32),g0,.05);
+  B.step('glassblock');
+  for(const s of[-1,1]) fbox('glassblock',faces[0],1.8,g0-.2,.14,s*(tw/2+1.6),0,.07);
+  for(const s of[-1,1]){ const f=faceFrames(tv)[s>0?1:3]; fbox('glassblock',f,1.2,th-g0-1.2,.1,0,g0+.4,.05); }
+  B.step('canopy');
+  const cs=new THREE.Shape(); const cwid=tw+2.4, cdep=2.8;
+  cs.moveTo(-cwid/2,0); cs.lineTo(-cwid/2,-cdep+cwid*0); cs.absarc(0,-cdep,cwid/2,PI,2*PI,false); cs.lineTo(cwid/2,0); cs.closePath();
+  { const g=new THREE.ExtrudeGeometry(cs,{ depth:.22, bevelEnabled:false, curveSegments:20 }); g.rotateX(PI/2); B.add(g,'stone',T(0,g0-.05,tz+td/2,0,0,0,1,1,.5)); }
+  fbox('door',tf,2.4,g0-.3,.12,0,0,.06); fbox('metal',tf,.1,g0-.3,.16,0,0,.08);
+  for(let k=0;k<3;k++) box('stone3',tw-k*.6,.15,1.2-k*.3,0,k*.15,tz+td/2+.6-k*.15);
+  B.step('pastel');
+  for(let j=0;j<floors;j++){ const y=g0+j*fh+.3+fh*.52+.02; rring('accent2',W+1.55,D+1.55,r+.78,.3,.06,0,y,0); }
+  rring('accent2',W+.2,D+.2,r+.1,.4,.5,0,0,0);
+  steppedAttic('accent',0,th,tz-.2,tw*.75+.02,td*.8+.02,.6,2);
+  B.step('neon');
+  for(const s of[-1,1]){ seg('neon',new V3(s*.4,ty,finZ+1.62),new V3(s*.4,ty+finH,finZ+1.62)); seg('neon',new V3(s*.4,ty+finH,finZ+1.62),new V3(s*.4,ty+finH,finZ-1.6)); }
+  rring('neon2',W+1.62,D+1.62,r+.81,.06,.06,0,g0+(floors-1)*fh+.3+fh*.52+.02,0);
+  seg('neon2',new V3(-tw*.375,th+1.25,tz-.2+td*.4+.02),new V3(tw*.375,th+1.25,tz-.2+td*.4+.02));
+  B.step('lighting').focusAll=true;
+  addSpot(-10,.4,D/2+10,0,th,tz,0xfff0e0,1.8,.4); addSpot(10,.4,D/2+10,0,th,tz,0xfff0e0,1.8,.4);
+  addPoint(0,g0-.6,tz+td/2+1.5,0xffe0b0,2.5,8);
+  return { name:'The '+name.split(' ').map(w=>w[0]+w.slice(1).toLowerCase()).join(' ')+' Hotel', palette:'white stucco & pastel', beach:true };
+}
+
+function buildPower(){
+  const pal=pick(PAL.power); B=new Builder(makeMats(pal));
+  B.mats.white=std(0xebe5d8,.8);
+  const bay=rnd(2.2,2.6);
+  const nw=2*ri(10,12)+1, nd=2*ri(7,8)+1, W=nw*bay, D=nd*bay, H=rnd(18,23);
+  const hall=vol(0,0,W,D,0,H);
+  const ncb=2*ri(3,4)+1, cb=vol(0,0,ncb*bay,D*.84,H,H*.28);
+  const s=bay*ri(4,5), corners=[];
+  for(const sx of[-1,1]) for(const sz of[-1,1]){ const x=sx*(W/2-s/2+.6), z=sz*(D/2-s/2+.6);
+    corners.push([vol(x,z,s,s,0,H+4),vol(x,z,s*.8,s*.8,H+4,2.5),vol(x,z,s*.62,s*.62,H+6.5,2)]); }
+  const pW=bay*2.4, pH=H*.42;
+  const inP=(sd,u)=>sd==='front'&&Math.abs(u)<pW/2+1.6;
+
+  B.step('massing','+A vast brick turbine hall with a raised central boiler house.'); massBox(hall); massBox(cb);
+  B.step('corner'); corners.forEach(c=>c.forEach(v=>massBox(v)));
+  const chH=rnd(28,36), cr=s*.24;
+  B.step('chimneys');
+  corners.forEach(c=>{ const t=c[2], y=t.y+t.h;
+    cyl('white',cr*1.25,cr*1.35,1.2,t.x,y,t.z,24);
+    cyl('white',cr*.9,cr*.9,chH,t.x,y+1.2,t.z,24);
+    for(let i=0;i<18;i++){ const a=i/18*2*PI; box('white',.32,chH-1,.32,t.x+Math.sin(a)*cr*.92,y+1.2,t.z+Math.cos(a)*cr*.92,a); }
+    cyl('white',cr*1.06,cr*1.06,1.4,t.x,y+chH,t.z,24); cyl('spandrel',cr*.8,cr*.8,.12,t.x,y+chH+1.35,t.z,20); });
+  B.step('fluting');
+  piers(hall,bay,'stone2',{ ratio:.32, ext:.8, cut:(sd,u)=>inP(sd,u)?pH+2.4:0 }); piers(cb,bay,'stone2',{ ratio:.32, ext:.6 });
+  B.step('windows','+Here: towering slit windows that flood the turbine hall with light.');
+  windows(hall,bay,H*.6,{ start:H*.22, end:H*.17, wr:.42, hr:.97, spandrel:null, lit:.7, skip:(sd,u)=>inP(sd,u) });
+  windows(cb,bay,cb.h*.6,{ start:cb.h*.15, end:cb.h*.2, wr:.42, hr:.95, spandrel:null, lit:.7 });
+  corners.forEach(c=>{ for(const f of faceFrames(c[0])) for(let j=0;j<3;j++) fbox('glassLit',f,s*.16,H*.18,.1,0,H*.3+j*H*.22,.03); });
+  B.step('brick');
+  chevronFrieze(hall,H-1.6,1.6,'accent',.42,{ band:'stone' }); chevronFrieze(cb,cb.h-1.2,1.2,'accent',.4,{ band:'stone' });
+  corners.forEach(c=>{ chevronFrieze(c[0],c[0].h-1.4,1.2,'accent',.3,{ band:'stone' }); });
+  for(let k=0;k<3;k++) box('accent',W+.9+k*.0,.25,D+.9,0,H*.2+k*.5,0);
+  steppedAttic('stone',0,H+cb.h,cb.d/2-.8,cb.w*.6,1.4,.9,3);
+  B.step('entrance'); const hf=faceFrames(hall)[0]; const ph=portal(hf,0,pW,pH,{ steps:4, mat:'accent' });
+  relief(hf,0,ph+.4,pW+2,2.2,'accent','metal');
+  B.step('metal'); coping(hall,H+.8,.6); coping(cb,cb.y+cb.h+.6,.6);
+  corners.forEach(c=>c.forEach(v=>coping(v,v.y+v.h,.25)));
+  B.step('lighting').focusAll=true;
+  corners.forEach(c=>{ const t=c[2]; addSpot(t.x*1.6,.5,t.z*1.6,t.x,t.y+chH*.6,t.z,0xfff0d8,2.2,.22); });
+  return { name:pick(['Riverside','Northbank','Kingsway','Thameside','Eastgate','Millbrook','Harbourside'])+' Power Station', palette:pal.name, river:true };
+}
+
+const TYPES = {
+  skyscraper:{ label:'Setback Skyscraper', era:'Manhattan · 1928–1932', desc:'The jazz-age tower: a ziggurat of setbacks rising to a jewelled crown, born of the race for the sky that produced the Chrysler and Empire State Buildings.', build:buildSkyscraper, urban:true },
+  slab:{ label:'Slab Skyscraper', era:'Rockefeller Center · 1930–1939', desc:'A sheer thin slab striped by continuous piers, its ends notched in symmetric setbacks — the sober, monumental late-Deco tower.', build:buildSlab, urban:true },
+  theatre:{ label:'Movie Palace', era:'Main Street · 1930s', desc:'Cinemas were Deco\'s most exuberant buildings: pylons, neon, marquees and blade signs designed to stop traffic and sell dreams.', build:buildTheatre, urban:true, street:true },
+  civic:{ label:'Civic Building', era:'City Hall · 1930s', desc:'Government in the machine age: a symmetrical, stripped-classical composition on a podium, crowned by a setback tower and carved with allegories.', build:buildCivic, urban:true },
+  palace:{ label:'Deco Palace', era:'Jodhpur · Paris · 1930s', desc:'Art Deco for maharajas and magnates: a domed symmetrical palace that fuses Deco geometry with Indian and European palace traditions.', build:buildPalace, garden:true },
+  streamline:{ label:'Streamline Hotel', era:'Miami Beach · 1936–1941', desc:'Late Deco turned aerodynamic: rounded corners, eyebrows, speed lines and portholes, painted in tropical pastels and outlined in neon.', build:buildStreamline, beach:true },
+  power:{ label:'Power Station', era:'London · 1929–1955', desc:'An industrial cathedral: a monumental brick hall with ziggurat corner towers and fluted chimneys — proof that infrastructure could be architecture.', build:buildPower, urban:true, river:true },
+};
+
+// ---------------------------------------------------------------- scene
+const app=document.getElementById('app');
+const renderer=new THREE.WebGLRenderer({ antialias:true, powerPreference:'high-performance' });
+renderer.setPixelRatio(Math.min(devicePixelRatio,2));
+renderer.setSize(innerWidth,innerHeight);
+renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
+renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1;
+app.appendChild(renderer.domElement);
+
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(42,innerWidth/innerHeight,.5,6000);
+const controls=new OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true; controls.dampingFactor=.08; controls.maxPolarAngle=PI/2-.03;
+controls.autoRotate=true; controls.autoRotateSpeed=.45;
+
+const pmrem=new THREE.PMREMGenerator(renderer);
+scene.environment=pmrem.fromScene(new RoomEnvironment(),.04).texture;
+
+const hemi=new THREE.HemisphereLight(0xdfe8f5,0x8a7a62,1); scene.add(hemi);
+const sun=new THREE.DirectionalLight(0xfff1dc,2.6); sun.castShadow=true; sun.shadow.mapSize.set(2048,2048);
+sun.shadow.bias=-.0004; sun.shadow.normalBias=.04; scene.add(sun,sun.target);
+
+const skyMat=new THREE.ShaderMaterial({ side:THREE.BackSide, depthWrite:false, fog:false,
+  uniforms:{ top:{ value:new THREE.Color() }, bottom:{ value:new THREE.Color() } },
+  vertexShader:'varying vec3 vP; void main(){ vP=normalize(position); gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.); }',
+  fragmentShader:'uniform vec3 top; uniform vec3 bottom; varying vec3 vP; void main(){ float h=clamp(vP.y*1.5+.02,0.,1.); gl_FragColor=vec4(mix(bottom,top,pow(h,.65)),1.); }' });
+const sky=new THREE.Mesh(new THREE.SphereGeometry(4000,32,16),skyMat); sky.renderOrder=-1; scene.add(sky);
+const starGeo=new THREE.BufferGeometry(); { const p=[]; for(let i=0;i<1500;i++){ const u=Math.random()*2*PI, v=Math.random()*.9+.08; const c=Math.sqrt(1-v*v); p.push(Math.cos(u)*c*3800,v*3800,Math.sin(u)*c*3800); } starGeo.setAttribute('position',new THREE.Float32BufferAttribute(p,3)); }
+const starMat=new THREE.PointsMaterial({ color:0xffffff, size:1.6, sizeAttenuation:false, transparent:true, opacity:0, fog:false, depthWrite:false });
+const stars=new THREE.Points(starGeo,starMat); sky.add(stars);
+scene.fog=new THREE.Fog(0xe9dcc6,200,1500);
+
+const DAY={ top:new THREE.Color(0x5f8fbf), bottom:new THREE.Color(0xe6d6bb), hemi:.55, sun:3.0, env:.6, sunCol:new THREE.Color(0xfff1dc), bloom:.12 };
+const NIGHT={ top:new THREE.Color(0x03050d), bottom:new THREE.Color(0x161b2e), hemi:.06, sun:.22, env:.07, sunCol:new THREE.Color(0x9fb4ff), bloom:.55 };
+
+const rt=new THREE.WebGLRenderTarget(innerWidth,innerHeight,{ type:THREE.HalfFloatType, samples:4 });
+const composer=new EffectComposer(renderer,rt);
+composer.addPass(new RenderPass(scene,camera));
+const bloom=new UnrealBloomPass(new THREE.Vector2(innerWidth,innerHeight),.2,.5,.86); composer.addPass(bloom);
+composer.addPass(new OutputPass());
+
+// ---------------------------------------------------------------- context (ground, neighbours, landscape)
+function buildContext(info, bounds){
+  const g=new THREE.Group();
+  const c=bounds.getCenter(new V3()), sz=bounds.getSize(new V3()), Rb=Math.max(sz.x,sz.z)/2, Hb=sz.y;
+  const groundCol=info.garden?0x7d8c58:info.beach?0xe2d3a8:0x8d887e;
+  const mats={ ground:std(groundCol,.95), plaza:std(info.garden?0xcbbd9f:0xb4ada0,.9), road:std(0x4a4a4c,.9), n1:std(0x8a857c,.9), n2:std(0x77736d,.9), n3:std(0x948c80,.9),
+    win:emis(std(0x30353b,.6),0xffc979,0,.55), sea:std(0x2c6f86,.08,.7), globe:emis(std(0xfff6dc,.3),0xffe2a8,.15,2.4), metal:std(0x55575a,.4,.8), leaf:std(0x46803e,.9), trunk:std(0x8b7355,.95) };
+  const old=B; B=new Builder(mats); B.step('ctx');
+  { const ge=new THREE.PlaneGeometry(Rb*80,Rb*80); ge.rotateX(-PI/2); B.add(ge,'ground'); }
+  box('plaza',sz.x+16,.04,sz.z+16,c.x,0,c.z);
+  const front=bounds.max.z;
+  const camAz=.6;
+  if(info.urban){
+    if(info.street||info.river===undefined||true){ box('road',Rb*30,.03,10,0,0,front+(info.river?40:14)); }
+    for(let x=-sz.x/2-6;x<=sz.x/2+6;x+=7){ if(Math.abs(x)<3) continue; lampCtx(x,front+8); }
+    const n=info.street?50:70;
+    for(let i=0;i<n;i++){
+      const a=rnd(0,2*PI), d=Rb*rnd(2.2,6)+18;
+      let da=Math.abs(((a-camAz+PI)%(2*PI)+2*PI)%(2*PI)-PI); if(da<1.0) continue;
+      const x=c.x+Math.sin(a)*d, z=c.z+Math.cos(a)*d;
+      if(info.river && z>front+25) continue;
+      const w=rnd(8,18), dd=rnd(8,18), h=info.street?rnd(5,14):clamp(Hb*rnd(.1,.45),6,80);
+      box(pick(['n1','n2','n3']),w,h,dd,x,0,z,rnd(-.08,.08));
+    }
+    if(info.street) for(const s of[-1,1]){ let x=s*(sz.x/2+.3); for(let k=0;k<3;k++){ const w=rnd(9,14), h=rnd(8,15); box(pick(['n1','n2','n3']),w,h,rnd(18,26),x+s*w/2,0,-rnd(4,8)+bounds.max.z-8); x+=s*(w+.2); } }
+  }
+  if(info.river){ const ge=new THREE.PlaneGeometry(Rb*30,60); ge.rotateX(-PI/2); B.add(ge,'sea',T(0,.06,front+80)); }
+  if(info.beach){
+    const ge=new THREE.PlaneGeometry(Rb*40,Rb*20); ge.rotateX(-PI/2); B.add(ge,'sea',T(0,.08,front+40+Rb*10));
+    box('road',Rb*30,.03,9,0,0,front+10);
+    for(let x=-sz.x/2-4;x<=sz.x/2+4;x+=6){ palm(x,front+16+rnd(-1,1)); }
+    for(let i=0;i<14;i++){ const s=chance(.5)?-1:1, x=s*(sz.x/2+rnd(6,60)), z=rnd(-30,front); box(pick(['n1','n3']),rnd(12,22),rnd(6,14),rnd(10,18),x,0,z); }
+  }
+  if(info.garden){
+    for(let i=0;i<70;i++){ const a=rnd(0,2*PI), d=Rb*rnd(1.3,3.2); let da=Math.abs(((a-camAz+PI)%(2*PI)+2*PI)%(2*PI)-PI); if(da<.5) continue;
+      const x=Math.sin(a)*d, z=Math.cos(a)*d+c.z; const h=rnd(3,6); cyl('trunk',.2,.3,h*.4,x,0,z,6); const gs=new THREE.SphereGeometry(h*.4,8,6); B.add(gs,'leaf',T(x,h*.55,z)); }
+  }
+  function lampCtx(x,z){ cyl('metal',.08,.14,4,x,0,z,8); cyl('globe',.3,.3,.6,x,4,z,10); }
+  function palm(x,z){ const h=rnd(6,9), lean=rnd(-.15,.15); const g=new THREE.CylinderGeometry(.18,.28,h,7); g.translate(0,h/2,0); B.add(g,'trunk',T(x,0,z,0,0,lean));
+    const tx=x-Math.sin(lean)*h, ty=Math.cos(lean)*h;
+    for(let k=0;k<8;k++){ const gl=new THREE.BoxGeometry(.5,.05,3.2); gl.translate(0,0,1.6); B.add(gl,'leaf',T(tx,ty,z,k*PI/4+rnd(-.2,.2),rnd(.35,.7))); } }
+  const ms=mergeBuckets(B.cur.buckets,mats,g);
+  g.traverse(o=>{ if(o.isMesh && o.material.color.getHex()===groundCol){ o.castShadow=false; } });
+  B=old;
+  return { group:g, mats:ms };
+}
+
+// ---------------------------------------------------------------- generation
+const state={ steps:[], cur:-1, playing:false, timer:0, interval:3.6, nightT:0, nightOverride:null, lightIdx:-1,
+  follow:true, rotate:true, flashStep:-1, flashT:0, root:null, ctx:null, lights:[], bounds:new THREE.Box3(), fit:100, seed:0, type:'' };
+
+function disposeObj(o){ o.traverse(x=>{ if(x.geometry) x.geometry.dispose(); if(x.material){ const m=x.material; for(const k of['map','emissiveMap']) if(m[k]&&m[k]._own) m[k].dispose(); m.dispose(); } }); }
+
+function generate(seed, type){
+  if(state.root){ scene.remove(state.root); disposeObj(state.root); }
+  if(state.ctx){ scene.remove(state.ctx.group); disposeObj(state.ctx.group); }
+  state.seed=seed; R=mulberry32(seed);
+  const keys=Object.keys(TYPES);
+  if(!TYPES[type]) type=keys[Math.floor(R()*keys.length)];
+  state.type=type;
+  const info=TYPES[type], meta=info.build();
+  const root=new THREE.Group(); const steps=[];
+  B.steps.forEach((s,i)=>{
+    const g=new THREE.Group(), inner=new THREE.Group(); g.add(inner);
+    const mats=mergeBuckets(s.buckets,B.mats,inner);
+    inner.updateMatrixWorld(true);
+    const box=new THREE.Box3().setFromObject(inner);
+    const minY=box.isEmpty()?0:box.min.y; g.position.y=minY; inner.position.y=-minY;
+    g.visible=false; root.add(g);
+    steps.push({ key:s.key, title:s.title, text:s.text, group:g, mats, box, t:0, focusAll:!!s.focusAll });
+  });
+  const bounds=new THREE.Box3(); steps.forEach(s=>{ if(!s.box.isEmpty()) bounds.union(s.box); });
+  B.lights.forEach(L=>{ root.add(L); if(L.target) root.add(L.target); });
+  scene.add(root);
+  state.root=root; state.steps=steps; state.lights=B.lights; state.bounds=bounds;
+  state.lightIdx=steps.findIndex(s=>s.key==='lighting');
+  state.cur=-1; state.nightOverride=null; state.timer=state.interval-.6; state.playing=true;
+  state.ctx=buildContext(info,bounds); scene.add(state.ctx.group);
+  // camera & sun framing
+  const sph=bounds.getBoundingSphere(new THREE.Sphere());
+  state.fit=sph.radius/Math.sin(camera.fov*PI/360)*1.02;
+  const c=sph.center, el=.2, az=.6;
+  controls.target.copy(c);
+  camera.position.set(c.x+Math.sin(az)*Math.cos(el)*state.fit,c.y+Math.sin(el)*state.fit,c.z+Math.cos(az)*Math.cos(el)*state.fit);
+  controls.maxDistance=state.fit*3; controls.minDistance=4;
+  const r=sph.radius*1.25;
+  sun.position.set(c.x-r*1.5,c.y+r*1.5,c.z+r*.9); sun.target.position.copy(c);
+  Object.assign(sun.shadow.camera,{ left:-r, right:r, top:r, bottom:-r, near:.5, far:r*5 }); sun.shadow.camera.updateProjectionMatrix();
+  scene.fog.near=state.fit*1.2; scene.fog.far=state.fit*9;
+  state.follow=true; state.focus={ c:c.clone(), d:state.fit };
+  // UI
+  document.getElementById('bname').textContent=meta.name;
+  document.getElementById('btype').textContent=info.label;
+  document.getElementById('bera').textContent=info.era+' · '+meta.palette;
+  document.getElementById('bdesc').textContent=info.desc;
+  document.getElementById('seed').textContent='No. '+seed;
+  document.getElementById('type').value=Object.keys(TYPES).includes(urlType)?urlType:'random';
+  const ol=document.getElementById('steps'); ol.innerHTML='';
+  steps.forEach((s,i)=>{
+    const li=document.createElement('li');
+    li.innerHTML=`<div class="row"><span class="num">${roman(i+1)}</span><span class="ttl"></span></div><div class="desc"></div>`;
+    li.querySelector('.ttl').textContent=s.title; li.querySelector('.desc').textContent=s.text;
+    li.onclick=()=>{ state.playing=false; setStep(i); };
+    ol.appendChild(li);
+  });
+  history.replaceState(null,'',`?seed=${seed}${urlType!=='random'?'&type='+urlType:''}`);
+  updateUI();
+}
+function roman(n){ const m=[[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']]; let s=''; for(const [v,r] of m) while(n>=v){ s+=r; n-=v; } return s; }
+
+function setStep(i){
+  i=clamp(i,-1,state.steps.length-1);
+  if(i>state.cur){ state.flashStep=i; state.flashT=performance.now(); }
+  state.cur=i; state.follow=true; state.timer=0;
+  if(i<0||state.steps[i].focusAll) state.focus=framing(state.bounds,1);
+  else state.focus=framing(state.steps[i].box,.9);
+  updateUI();
+}
+function framing(box,k){
+  const s=box.getBoundingSphere(new THREE.Sphere());
+  const d=clamp(s.radius/Math.sin(camera.fov*PI/360)*k,state.fit*.24,state.fit);
+  return { c:s.center.clone(), d };
+}
+function updateUI(){
+  const lis=document.querySelectorAll('#steps li');
+  lis.forEach((li,i)=>{ li.classList.toggle('active',i===state.cur); li.classList.toggle('done',i<state.cur); });
+  if(state.cur>=0) lis[state.cur].scrollIntoView({ block:'nearest', behavior:'smooth' });
+  document.querySelector('#progress div').style.width=((state.cur+1)/Math.max(1,state.steps.length)*100)+'%';
+  document.getElementById('play').textContent=state.playing?'❚❚':'▶';
+  const s=state.steps[state.cur];
+  document.getElementById('capNum').textContent=s?roman(state.cur+1):'';
+  document.getElementById('capTitle').textContent=s?s.title:'';
+  const night=nightTarget();
+  document.getElementById('night').textContent=night?'☀ Day':'☾ Night';
+  document.getElementById('rotate').classList.toggle('on',state.rotate);
+}
+function nightTarget(){ return state.nightOverride ?? (state.lightIdx>=0&&state.cur>=state.lightIdx); }
+
+// ---------------------------------------------------------------- UI wiring
+const params=new URLSearchParams(location.search);
+let urlType=params.get('type')||'random';
+const sel=document.getElementById('type');
+sel.innerHTML='<option value="random">Any style</option>'+Object.entries(TYPES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
+sel.onchange=()=>{ urlType=sel.value; newBuilding(); };
+function newBuilding(){ generate(Math.floor(Math.random()*1e6), urlType); }
+document.getElementById('new').onclick=newBuilding;
+document.getElementById('prev').onclick=()=>{ state.playing=false; setStep(state.cur-1); };
+document.getElementById('next').onclick=()=>{ state.playing=false; setStep(state.cur+1); };
+document.getElementById('all').onclick=()=>{ state.playing=false; setStep(state.steps.length-1); };
+document.getElementById('play').onclick=togglePlay;
+document.getElementById('night').onclick=()=>{ state.nightOverride=!nightTarget(); updateUI(); };
+document.getElementById('rotate').onclick=()=>{ state.rotate=!state.rotate; updateUI(); };
+function togglePlay(){ if(!state.playing&&state.cur>=state.steps.length-1) setStep(-1); state.playing=!state.playing; state.timer=state.interval-.4; updateUI(); }
+addEventListener('keydown',e=>{
+  if(e.target.tagName==='SELECT') return;
+  if(e.key==='ArrowRight'){ state.playing=false; setStep(state.cur+1); }
+  else if(e.key==='ArrowLeft'){ state.playing=false; setStep(state.cur-1); }
+  else if(e.key===' '){ e.preventDefault(); togglePlay(); }
+  else if(e.key==='n'||e.key==='N') newBuilding();
+  else if(e.key==='l'||e.key==='L'){ state.nightOverride=!nightTarget(); updateUI(); }
+});
+controls.addEventListener('start',()=>{ state.follow=false; });
+
+function resize(){
+  const w=innerWidth, h=innerHeight;
+  renderer.setSize(w,h); composer.setSize(w,h); bloom.setSize(w,h);
+  camera.aspect=w/h;
+  const p=document.getElementById('panel').getBoundingClientRect();
+  if(w>760) camera.setViewOffset(w,h,(w-p.left+16)/2,0,w,h);
+  else camera.setViewOffset(w,h,0,(h-p.top+8)/2,w,h);
+  camera.updateProjectionMatrix();
+}
+addEventListener('resize',resize);
+
+// ---------------------------------------------------------------- loop
+const clock=new THREE.Clock(), gold=new THREE.Color(0xffc45a), tmp=new THREE.Color();
+const ease=t=>1-Math.pow(1-t,3);
+function applyEmissive(m,nt,flash,time){
+  const ud=m.userData; let I=(ud.dI||0)+((ud.nI||0)-(ud.dI||0))*nt;
+  if(ud.blink!==undefined) I*=.55+.45*(Math.sin(time*7+ud.blink)>0?1:0);
+  m.emissive.setHex(ud.e||0);
+  if(flash>0){ m.emissive.lerp(gold,flash); I=I*(1-flash)+flash*.35; }
+  m.emissiveIntensity=I;
+}
+function tick(){
+  const dt=Math.min(clock.getDelta(),.1), time=clock.elapsedTime, now=performance.now();
+  if(state.playing){ state.timer+=dt; if(state.timer>=state.interval){ if(state.cur<state.steps.length-1) setStep(state.cur+1); else { state.playing=false; updateUI(); } } }
+  // night blend
+  const nt=nightTarget()?1:0; state.nightT+=(nt-state.nightT)*Math.min(1,dt*1.6); const n=state.nightT;
+  skyMat.uniforms.top.value.copy(DAY.top).lerp(NIGHT.top,n); skyMat.uniforms.bottom.value.copy(DAY.bottom).lerp(NIGHT.bottom,n);
+  scene.fog.color.copy(skyMat.uniforms.bottom.value);
+  hemi.intensity=DAY.hemi+(NIGHT.hemi-DAY.hemi)*n; sun.intensity=DAY.sun+(NIGHT.sun-DAY.sun)*n; sun.color.copy(DAY.sunCol).lerp(NIGHT.sunCol,n);
+  scene.environmentIntensity=DAY.env+(NIGHT.env-DAY.env)*n; bloom.strength=DAY.bloom+(NIGHT.bloom-DAY.bloom)*n; starMat.opacity=n;
+  // reveal steps
+  const flashAge=(now-state.flashT)/1000;
+  state.steps.forEach((s,i)=>{
+    const target=i<=state.cur?1:0;
+    s.t=clamp(s.t+(target>s.t?dt/.9:-dt/.5),0,1);
+    const e=ease(s.t); s.group.visible=s.t>.002; s.group.scale.y=Math.max(.001,e);
+    const tr=s.t<.999;
+    const flash=i===state.flashStep&&flashAge<2.2?Math.max(0,1-flashAge/2.2)*(.6+.4*Math.sin(flashAge*9)):0;
+    for(const m of s.mats){
+      if(m.transparent!==tr){ m.transparent=tr; m.depthWrite=true; m.needsUpdate=true; }
+      m.opacity=e; applyEmissive(m,n,flash,time);
+    }
+  });
+  const lt=state.lightIdx>=0?state.steps[state.lightIdx].t:0;
+  state.lights.forEach(L=>L.intensity=L.userData.I*n*lt);
+  if(state.ctx) state.ctx.mats.forEach(m=>applyEmissive(m,n,0,time));
+  // camera follow
+  if(state.follow&&state.focus){
+    const k=1-Math.exp(-dt*1.8);
+    const off=camera.position.clone().sub(controls.target);
+    controls.target.lerp(state.focus.c,k);
+    off.setLength(off.length()+(state.focus.d-off.length())*k);
+    camera.position.copy(controls.target).add(off);
+  }
+  controls.autoRotate=state.rotate;
+  controls.update(dt);
+  sky.position.copy(camera.position);
+  composer.render(dt);
+  requestAnimationFrame(tick);
+}
+
+// ---------------------------------------------------------------- start
+await Promise.race([Promise.all([document.fonts.load('64px Limelight'),document.fonts.load("600 64px 'Josefin Sans'")]),new Promise(r=>setTimeout(r,2500))]).catch(()=>{});
+resize();
+generate(parseInt(params.get('seed'))||Math.floor(Math.random()*1e6), urlType);
+const ld=document.getElementById('loading'); ld.style.opacity=0; setTimeout(()=>ld.remove(),700);
+tick();
+</script>
+</body>
+</html>
