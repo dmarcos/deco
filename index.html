@@ -492,12 +492,12 @@ function addPoint(x,y,z,color,I,dist){
 
 // ---------------------------------------------------------------- crowns
 const CROWNS = {
-  arches(y,s){
+  arches(y,s,x=0){
     let w=s*.82, yy=y; const k=ri(4,6);
-    box('crown',w*1.08,1.2,w*1.08,0,yy,0); yy+=1.2;
+    box('crown',w*1.08,1.2,w*1.08,x,yy,0); yy+=1.2;
     for(let i=0;i<k;i++){
-      const h=w*.38; box('crown',w,h,w,0,yy,0);
-      const v=vol(0,0,w,w,yy,h), Ro=w/2-.05, ro=Ro*.78;
+      const h=w*.38; box('crown',w,h,w,x,yy,0);
+      const v=vol(x,0,w,w,yy,h), Ro=w/2-.05, ro=Ro*.78;
       const ring=new THREE.Shape(); ring.moveTo(Ro,0); ring.absarc(0,0,Ro,0,PI,false); ring.lineTo(-ro,0); ring.absarc(0,0,ro,PI,0,true); ring.closePath();
       const nt=Math.max(5,Math.round(Ro*2.4));
       for(const f of faceFrames(v)){
@@ -513,24 +513,24 @@ const CROWNS = {
     }
     return yy;
   },
-  mast(y,s){
+  mast(y,s,x=0){
     let yy=y; const r=s*.24;
-    box('crown',s*.62,2.4,s*.62,0,yy,0); yy+=2.4;
-    box('crown',s*.48,2,s*.48,0,yy,0); yy+=2;
-    const h=7; cyl('crown',r,r,h,0,yy,0,28);
-    for(let i=0;i<16;i++){ const a=i/16*2*PI; box('metal',.32,h,.32,Math.sin(a)*r,yy,Math.cos(a)*r,a); }
-    for(let i=0;i<16;i++){ const a=(i+.5)/16*2*PI; box('glassLit',r*.22,h*.7,.1,Math.sin(a)*(r+.02),yy+h*.15,Math.cos(a)*(r+.02),a); }
-    yy+=h; cyl('metal',r*1.15,r*1.15,.4,0,yy,0,28); yy+=.4;
-    cyl('crown',r*.75,r*.8,3,0,yy,0,24); yy+=3;
-    cyl('glassLit',r*.55,r*.55,2.2,0,yy,0,20); yy+=2.2;
-    cyl('metal',r*.2,r*.6,1.2,0,yy,0,20); yy+=1.2;
+    box('crown',s*.62,2.4,s*.62,x,yy,0); yy+=2.4;
+    box('crown',s*.48,2,s*.48,x,yy,0); yy+=2;
+    const h=7; cyl('crown',r,r,h,x,yy,0,28);
+    for(let i=0;i<16;i++){ const a=i/16*2*PI; box('metal',.32,h,.32,x+Math.sin(a)*r,yy,Math.cos(a)*r,a); }
+    for(let i=0;i<16;i++){ const a=(i+.5)/16*2*PI; box('glassLit',r*.22,h*.7,.1,x+Math.sin(a)*(r+.02),yy+h*.15,Math.cos(a)*(r+.02),a); }
+    yy+=h; cyl('metal',r*1.15,r*1.15,.4,x,yy,0,28); yy+=.4;
+    cyl('crown',r*.75,r*.8,3,x,yy,0,24); yy+=3;
+    cyl('glassLit',r*.55,r*.55,2.2,x,yy,0,20); yy+=2.2;
+    cyl('metal',r*.2,r*.6,1.2,x,yy,0,20); yy+=1.2;
     return yy;
   },
-  terraced(y,s){
+  terraced(y,s,x=0){
     let yy=y, w=s*.85;
     for(let i=0;i<5;i++){
-      const h=2.2+(4-i)*.5; box('crown',w,h,w,0,yy,0);
-      const v=vol(0,0,w,w,yy,h);
+      const h=2.2+(4-i)*.5; box('crown',w,h,w,x,yy,0);
+      const v=vol(x,0,w,w,yy,h);
       for(const f of faceFrames(v)){
         const n=Math.max(1,Math.round(w/1.6));
         for(let j=0;j<n;j++) fbox('glassLit',f,w/n*.35,h*.6,.08,-w/2+(j+.5)*w/n,h*.2,.03);
@@ -540,12 +540,12 @@ const CROWNS = {
     }
     return yy;
   },
-  pyramid(y,s){
+  pyramid(y,s,x=0){
     let yy=y; const n=8;
-    for(let i=0;i<n;i++){ const w=s*.9*(1-i/n), h=s*.09; box(i%2?'metal':'crown',w,h,w,0,yy,0); yy+=h; }
-    box('metal',s*.12,s*.18,s*.12,0,yy,0); yy+=s*.18;
-    cyl('glassLit',.4,.4,1.5,0,yy,0,12); yy+=1.5;
-    cyl('metal',0,.3,2.5,0,yy,0,8);
+    for(let i=0;i<n;i++){ const w=s*.9*(1-i/n), h=s*.09; box(i%2?'metal':'crown',w,h,w,x,yy,0); yy+=h; }
+    box('metal',s*.12,s*.18,s*.12,x,yy,0); yy+=s*.18;
+    cyl('glassLit',.4,.4,1.5,x,yy,0,12); yy+=1.5;
+    cyl('metal',0,.3,2.5,x,yy,0,8);
     return yy+2.5;
   },
 };
@@ -595,44 +595,63 @@ const PASTELS = [
 // ---------------------------------------------------------------- building types
 function buildSkyscraper(){
   const pal=pick(PAL.sky); B=new Builder(makeMats(pal));
-  const bay=rnd(2.6,3.2);
-  let nw=2*ri(4,6)+1, nd=2*ri(3,5)+1;
-  const pod=vol(0,0,nw*bay,nd*bay,0,ri(7,11));
-  const tiers=[], nT=ri(3,5), total=ri(48,84);
-  const fr=[]; for(let i=0;i<nT;i++) fr.push(i===0?rnd(1.6,2.4):rnd(.6,1)*(1-i*.12));
-  const fs=fr.reduce((a,b)=>a+b); let y=pod.h;
-  for(let i=0;i<nT;i++){
-    if(nw>3) nw-=nw>7&&chance(.5)?4:2;
-    if(nd>3) nd-=nd>7&&chance(.4)?4:2;
-    nw=Math.max(3,nw); nd=Math.max(3,nd);
-    const h=Math.max(4,Math.round(total*fr[i]/fs));
-    tiers.push(vol(0,0,nw*bay,nd*bay,y,h)); y+=h;
-  }
-  const all=[pod,...tiers], top=tiers[tiers.length-1], ext=.6;
+  const V=VARIANT, bay=rnd(2.6,3.2);
+  const P={ ziggurat:{ nw:[4,6], nd:[3,5], pod:[7,11], nT:[3,5], total:[48,84] },
+            needle:{ nw:[2,3], nd:[2,3], pod:[5,8], nT:[3,4], total:[92,124] },
+            wedding:{ nw:[7,8], nd:[6,7], pod:[5,7], nT:[5,7], total:[34,50] },
+            twin:{ nw:[7,9], nd:[3,4], pod:[8,12], nT:[2,3], total:[52,76] } }[V];
+  const pnw=2*ri(...P.nw)+1, pnd=2*ri(...P.nd)+1;
+  const pod=vol(0,0,pnw*bay,pnd*bay,0,ri(...P.pod));
+  const nT=ri(...P.nT), total=ri(...P.total);
+  const fr=[]; for(let i=0;i<nT;i++) fr.push(V==='wedding'?rnd(.9,1.1)*(1-i*.08):i===0?rnd(1.6,2.4):rnd(.6,1)*(1-i*.12));
+  const fs=fr.reduce((a,b)=>a+b);
+  const shrink=[]; for(let i=0;i<nT;i++) shrink.push([chance(.5),chance(.4)]);
+  // one or two stacks of setback tiers rising from the podium
+  const tw=2*ri(1,2)+1, off=V==='twin'?pod.w/2-tw*bay/2-bay*ri(1,2):0;
+  const xs=V==='twin'?[-off,off]:[0];
+  const stacks=xs.map(x=>{
+    let nw=V==='twin'?tw+2:pnw, nd=V==='twin'?Math.min(pnd,tw+2):pnd, y=pod.h; const out=[];
+    for(let i=0;i<nT;i++){
+      if(nw>3) nw-=nw>7&&shrink[i][0]?4:2;
+      if(nd>3) nd-=nd>7&&shrink[i][1]?4:2;
+      nw=Math.max(3,nw); nd=Math.max(3,nd);
+      const h=Math.max(4,Math.round(total*fr[i]/fs));
+      out.push(vol(x,0,nw*bay,nd*bay,y,h)); y+=h;
+    }
+    return out;
+  });
+  const tiers=stacks.flat(), all=[pod,...tiers], ext=.6;
   const pW=bay*1.8, pH=Math.min(pod.h-2.2,rnd(5,7));
   const inPortal=(s,u)=>s==='front'&&Math.abs(u)<pW/2+1.4;
   const cutF=(s,u)=>inPortal(s,u)?pH+2.2:0;
+  const MASS={ ziggurat:'+Here the podium fills the street block and a single shaft rises from it.',
+    needle:'+Here a small footprint and great height make a slender needle — a pencil of stone pointed at the sky.',
+    wedding:'+Here a broad, squat base: a "wedding cake" of many short tiers, like the garment-district towers of Midtown.',
+    twin:'+Here two identical towers rise from one podium, a type invented for the apartment palaces of Central Park West.' };
 
-  B.step('massing','+Here the podium fills the street block and a single shaft rises from it.'); massBox(pod); massBox(tiers[0]);
-  B.step('setbacks'); tiers.slice(1).forEach(v=>massBox(v));
+  B.step('massing',MASS[V]); massBox(pod); stacks.forEach(st=>massBox(st[0]));
+  B.step('setbacks'); stacks.forEach(st=>st.slice(1).forEach(v=>massBox(v)));
   B.step('piers'); all.forEach((v,i)=>piers(v,bay,'stone2',{ ext, cut:i===0?cutF:null }));
   B.step('windows'); all.forEach((v,i)=>windows(v,bay,1,{ start:i===0?1.4:.4, end:.8, skip:i===0?(s,u,yy)=>inPortal(s,u)&&yy<pH+2.2:null }));
   B.step('entrance'); portal(faceFrames(pod)[0],0,pW,pH,{ steps:3 });
-  B.step('chevrons'); all.forEach((v,i)=>{ chevronFrieze(v,v.h-.8,1.4,'accent',.36); if(i<all.length-1) cornerFinials(v,v.y+v.h+ext,bay*.6); });
-  const cv=pick(['arches','mast','terraced','pyramid']), ct=top.y+top.h+ext, s=Math.min(top.w,top.d);
-  B.step('crown','+'+CROWN_TEXT[cv]); box('crown',s*.88,ext,s*.88,0,top.y+top.h,0); const cy=CROWNS[cv](ct,s);
-  if(cv!=='pyramid'){ B.step('spire'); spire(0,cy,0,s*rnd(.5,.9),.5); }
+  B.step('chevrons'); all.forEach(v=>{ chevronFrieze(v,v.h-.8,1.4,'accent',.36); });
+  [pod,...stacks.flatMap(st=>st.slice(0,-1))].forEach(v=>cornerFinials(v,v.y+v.h+ext,bay*.6));
+  const cv=pick({ ziggurat:['arches','mast','terraced','pyramid'], needle:['arches','mast'], wedding:['pyramid','terraced'], twin:['terraced','pyramid','mast'] }[V]);
+  const tops=stacks.map(st=>st[st.length-1]);
+  B.step('crown','+'+CROWN_TEXT[cv]+(V==='twin'?' Each tower carries its own.':''));
+  const cys=tops.map(top=>{ const s=Math.min(top.w,top.d); box('crown',s*.88,ext,s*.88,top.x,top.y+top.h,0); return CROWNS[cv](top.y+top.h+ext,s,top.x); });
+  if(cv!=='pyramid'){ B.step('spire'); tops.forEach((top,i)=>{ const s=Math.min(top.w,top.d); spire(top.x,cys[i],0,s*(V==='needle'?rnd(1.3,1.8):rnd(.5,.9)),V==='twin'?.35:.5); }); }
   B.step('metal'); all.forEach(v=>coping(v,v.y+v.h+ext));
-  const gt=tiers[Math.min(1,tiers.length-1)];
-  B.step('gargoyles'); gargoyles(gt,gt.y+gt.h-1.6,bay*.55);
-  const lt=tiers[Math.max(0,tiers.length-2)], ly=lt.y+lt.h+ext+.22;
+  B.step('gargoyles'); stacks.forEach(st=>{ const gt=st[Math.min(1,st.length-1)]; gargoyles(gt,gt.y+gt.h-1.6,bay*.55); });
   B.step('lighting').focusAll=true;
-  for(const sx of[-1,1]) for(const sz of[-1,1]){
-    const x=sx*(lt.w/2-.8), z=sz*(lt.d/2-.8); box('metal',.7,.5,.7,x,ly,z);
-    addSpot(x,ly+.5,z,0,(ct+cy)/2,0,0xffd9a0,3.2);
-  }
+  stacks.forEach((st,i)=>{ const lt=st[Math.max(0,st.length-2)], ly=lt.y+lt.h+ext+.22, top=tops[i];
+    for(const sx of[-1,1]) for(const sz of[-1,1]){
+      const x=lt.x+sx*(lt.w/2-.8), z=sz*(lt.d/2-.8); box('metal',.7,.5,.7,x,ly,z);
+      if(xs.length===1||sz>0) addSpot(x,ly+.5,z,top.x,(top.y+top.h+cys[i])/2,0,0xffd9a0,3.2);
+    } });
   addSpot(0,1,pod.d/2+16,0,pH,pod.d/2,0xffe2b0,2.2,.5);
-  return { name:pick(['Chanin','Meridian','Continental','Lefcourt','Sterling','Atlas','Zenith','Halcyon','Vanguard','Aurora','Monarch','Fuller','Bowery Savings','Mercury'])+pick([' Building',' Tower',' Building']), palette:pal.name };
+  const nm=pick(['Chanin','Meridian','Continental','Lefcourt','Sterling','Atlas','Zenith','Halcyon','Vanguard','Aurora','Monarch','Fuller','Bowery Savings','Mercury','Majestic','Century','Eldorado','Beresford']);
+  return { name:V==='twin'?'The '+nm+' Towers':nm+pick([' Building',' Tower']), palette:pal.name };
 }
 
 function buildSlab(){
@@ -674,47 +693,71 @@ function buildSlab(){
   return { name:pick(['Rockwell','News','Radio','Graybar','Daily Courier','Telephone','Mutual','Union Carbide','Excelsior'])+' Building', palette:pal.name };
 }
 
+function neonBoardMaterial(text, fg, bg){
+  const c=document.createElement('canvas'); c.width=1024; c.height=192; const g=c.getContext('2d');
+  g.fillStyle=bg; g.fillRect(0,0,c.width,c.height);
+  let fs=140; g.font=`${fs}px Limelight, Georgia, serif`;
+  while(g.measureText(text).width>c.width*.9 && fs>20){ fs-=4; g.font=`${fs}px Limelight, Georgia, serif`; }
+  g.textAlign='center'; g.textBaseline='middle';
+  g.shadowColor=fg; g.shadowBlur=26; g.fillStyle=fg; g.fillText(text,c.width/2,c.height*.55);
+  g.shadowBlur=0; g.fillStyle='rgba(255,255,255,.75)'; g.fillText(text,c.width/2,c.height*.55);
+  const t=canvasTex(c);
+  return emis(std(0xffffff,.5,0,{ map:t, emissiveMap:t }), 0xffffff, .75, 1.1);
+}
 function buildTheatre(){
   const pal=pick(PAL.theatre); B=new Builder(makeMats(pal));
+  const V=VARIANT;
   const name=pick(['ROXY','RIO','ODEON','REX','LUX','PARAMOUNT','MAJESTIC','ORPHEUM','STRAND','REGAL','ASTOR','RITZ','EMBASSY','ALHAMBRA','CAPITOL','STATE','PALLADIUM','EMPIRE']);
   const film=pick(['METROPOLIS','KING KONG','TOP HAT','CITY LIGHTS','GRAND HOTEL','42ND STREET','FLYING DOWN TO RIO','THE THIN MAN','MODERN TIMES','SWING TIME','DRACULA','FRANKENSTEIN','IT HAPPENED ONE NIGHT','SHALL WE DANCE']);
-  B.mats.sign=signMaterial(name,'#'+new THREE.Color(pal.neon).getHexString(),'#16161b');
+  const neonHex='#'+new THREE.Color(pal.neon).getHexString();
+  B.mats.sign=signMaterial(name,neonHex,'#16161b');
+  B.mats.hsign=neonBoardMaterial(name,neonHex,'#16161b');
   B.mats.board=boardMaterial('NOW SHOWING · '+film);
-  const W=rnd(26,34), H=rnd(12,14.5), Dl=8, rounded=chance(.5), r=3;
+  const W=rnd(26,34)*(V==='twin'?1.12:1), H=rnd(12,14.5), Dl=8, rounded=chance(.5), r=3;
   const lobby=vol(0,0,W,Dl,0,H), aud=vol(0,-Dl/2-13,W*.92,26,0,H*rnd(1.15,1.35));
-  const pw=rnd(4,5.2), pd=3, pY0=6.4, signH=name.length*2.0, pyMain=signH+1.6+pw*.95;
-  const pz=Dl/2+pd/2-1, fF=faceFrames(lobby)[0];
   const half=rounded?W/2-r:W/2;
+  const pw=rnd(4,5.2), pd=3, pY0=6.4, signH=name.length*2.0;
+  const blade=V!=='twin', pyMain=blade?signH+1.6+pw*.95:rnd(13,17);
+  const pxs=V==='pylon'?[0]:V==='side'?[-(half-pw/2-1)]:[-W*.27,W*.27];
+  const pz=Dl/2+pd/2-1, fF=faceFrames(lobby)[0];
+  const pvs=pxs.map(x=>vol(x,pz,pw,pd,pY0,pyMain));
 
-  B.step('massing','+A cinema is two boxes: a plain auditorium behind and a showy lobby block facing the street.');
+  B.step('massing',{ pylon:'+A cinema is two boxes: a plain auditorium behind and a showy lobby block facing the street, here perfectly symmetrical.',
+    side:'+A cinema is two boxes: a plain auditorium behind and a lobby block facing the street — here deliberately asymmetrical, with the tower pushed to one corner.',
+    twin:'+A cinema is two boxes: a plain auditorium behind and a wide lobby block facing the street, framed by twin towers.' }[V]);
   massBox(aud,'stone3'); rounded?rbox('stone',W,Dl,H,r,0,0,0):massBox(lobby);
-  B.step('pylon');
-  const pv=vol(0,pz,pw,pd,pY0,pyMain); massBox(pv,'stone2');
-  let yy=pY0+pyMain, ww=pw, dd=pd;
-  for(let k=0;k<3;k++){ ww*=.76; dd*=.86; const hh=1.4-k*.3; box('stone2',ww,hh,dd,0,yy,pz); yy+=hh; }
-  const pf=faceFrames(pv)[0];
-  for(const s of[-1,1]) for(let k=0;k<2;k++) fbox('accent',pf,.22,pyMain-1.6,.35,s*(pw/2-.45-k*.45),.8,.17);
-  for(let k=0;k<3;k++) box('stone2',pw*(.92-k*.2),.45,pd*(.9-k*.2),0,pY0-.45*(k+1),pz-k*.2);
+  B.step('pylon',V==='twin'?'+Here doubled: twin pylons frame the entrance like the gate towers of an Egyptian temple.':V==='side'?'+Here set to one side, so the tower and its sign can be seen far down the street.':undefined);
+  pvs.forEach(pv=>{
+    massBox(pv,'stone2');
+    let yy=pY0+pyMain, ww=pw, dd=pd;
+    for(let k=0;k<3;k++){ ww*=.76; dd*=.86; const hh=1.4-k*.3; box('stone2',ww,hh,dd,pv.x,yy,pz); yy+=hh; }
+    const pf=faceFrames(pv)[0];
+    for(const s of[-1,1]) for(let k=0;k<2;k++) fbox('accent',pf,.22,pyMain-1.6,.35,s*(pw/2-.45-k*.45),.8,.17);
+    for(let k=0;k<3;k++) box('stone2',pw*(.92-k*.2),.45,pd*(.9-k*.2),pv.x,pY0-.45*(k+1),pz-k*.2);
+  });
   B.step('speedlines');
   for(let k=0;k<3;k++){ const y=H-2.6+k*.6; rounded?rbox('accent',W+.3,Dl+.3,.18,r+.15,0,y,0):box('accent',W+.3,.18,Dl+.3,0,y,0); }
   B.step('glassblock');
-  for(const s of[-1,1]) fbox('glassblock',fF,2.2,H-3.2-(pY0+.4),.12,s*(pw/2+2.4),pY0+.4,.06);
-  B.step('chevrons','+Here a stepped, zigzag parapet climbs toward the pylon.');
-  const segs=4, segW=(half-pw/2)/segs;
-  for(const s of[-1,1]) for(let k=0;k<segs;k++) box('stone',segW,2.2-k*.5,1.2,s*(pw/2+segW*(k+.5)),H,Dl/2-.6);
+  const gbH=H-3.2-(pY0+.4);
+  if(V==='pylon') for(const s of[-1,1]) fbox('glassblock',fF,2.2,gbH,.12,s*(pw/2+2.4),pY0+.4,.06);
+  else if(V==='side') for(const u of[W*.04,W*.36]) fbox('glassblock',fF,2.2,gbH,.12,u,pY0+.4,.06);
+  else pvs.forEach(pv=>{ for(const i of[1,3]) fbox('glassblock',faceFrames(pv)[i],1.2,pyMain-2.4,.1,0,1.2,.05); });
+  B.step('chevrons','+Here a stepped, zigzag parapet climbs toward the centre.');
+  const start=V==='pylon'?pw/2:0, segs=4, segW=(half-start)/segs;
+  for(const s of[-1,1]) for(let k=0;k<segs;k++) box('stone',segW,2.2-k*.5,1.2,s*(start+segW*(k+.5)),H,Dl/2-.6);
   chevronFrieze(lobby,H-1.2,1.0,'accent2',.3,{ only:['front'], len:()=>half*2 });
   B.step('sunburst');
-  sunburst(pf,0,signH+1.6,pw*.42,{ rays:13, mats:['metal','accent'], out:.36 });
-  for(const s of[-1,1]) sunburst(fF,s*W*.35,pY0+.5,2,{ rays:11, mats:['metal','accent2'], out:.1 });
+  pvs.forEach(pv=>sunburst(faceFrames(pv)[0],0,blade?signH+1.6:pyMain-pw*.5-1,pw*.42,{ rays:13, mats:['metal','accent'], out:.36 }));
+  const fans=V==='pylon'?[-W*.35,W*.35]:V==='side'?[W*.2]:[];
+  fans.forEach(u=>sunburst(fF,u,pY0+.5,2,{ rays:11, mats:['metal','accent2'], out:.1 }));
   B.step('ticket');
-  const nd=6;
-  for(const s of[-1,1]) for(let i=0;i<nd/2;i++){
+  for(const s of[-1,1]) for(let i=0;i<3;i++){
     const u=s*(2.6+i*1.5); fbox('door',fF,1.3,3.2,.14,u,0,.07); fbox('metal',fF,1.5,.16,.2,u,3.2,.1);
   }
   const bz=Dl/2+2.6; cyl('metal',1.25,1.25,.4,0,0,bz,24); cyl('glassLit',1,1,2.3,0,.4,bz,24); cyl('metal',1.35,1.1,.5,0,2.7,bz,24); cyl('metal',0,.25,.8,0,3.2,bz,8);
   box('stone2',W*.6,.22,6,0,0,Dl/2+3);
   B.step('marquee');
-  const cw=W*.62, cdp=6, y0=4.4, th=1.6, zf=Dl/2+cdp;
+  const cw=Math.min(W*.62,V==='twin'?2*(W*.27)-pw-.6:99), cdp=6, y0=4.4, th=1.6, zf=Dl/2+cdp;
   rounded?rbox('stone2',cw,cdp,th,1.4,0,y0,Dl/2+cdp/2):box('stone2',cw,th,cdp,0,y0,Dl/2+cdp/2);
   const bf=frame(0,y0+.25,zf+.05); { const g=new THREE.PlaneGeometry(cw-(rounded?3:1.2),th-.5); g.translate(0,(th-.5)/2,0); fgeo(g,'board',bf,0,0,0); }
   for(const s of[-1,1]){ const g=new THREE.PlaneGeometry(cdp-(rounded?3:1.2),th-.5); g.translate(0,(th-.5)/2,0); fgeo(g,'board',frame(s*(cw/2+.05),y0+.25,Dl/2+cdp/2,s*PI/2),0,0,0); }
@@ -724,29 +767,63 @@ function buildTheatre(){
     for(const s of[-1,1]) for(let z=Dl/2+.6;z<zf-.4;z+=.45) B.add(bulb.clone(),bi++%2?'bulbA':'bulbB',T(s*(cw/2+.05),yb,z));
   }
   addPoint(0,y0-1,Dl/2+4,0xffd9a0,3,16);
-  B.step('blade');
-  const bz0=pz+pd/2+1.2, by=pY0+.7;
-  box('signbg',.45,signH+.6,2.4,0,by,bz0);
-  for(const s of[-1,1]){ const g=new THREE.PlaneGeometry(2.1,signH); g.translate(0,signH/2,0); fgeo(g,'sign',frame(s*.27,by+.3,bz0,s*PI/2),0,0,0); }
-  steppedAttic('signbg',0,by+signH+.6,bz0,2.4,.45,.35,3);
-  B.step('neon');
-  const zb=bz0+1.2, zb2=bz0-1.2;
-  for(const s of[-1,1]){
-    seg('neon',new V3(s*.25,by,zb),new V3(s*.25,by+signH+.6,zb));
-    seg('neon',new V3(s*.25,by+signH+.6,zb),new V3(s*.25,by+signH+.6,zb2));
-    seg('neon2',new V3(s*pw/2,pY0,pz+pd/2+.05),new V3(s*pw/2,pY0+pyMain,pz+pd/2+.05));
-    for(let k=0;k<segs;k++){ const x0=s*(pw/2+segW*k), x1=s*(pw/2+segW*(k+1)), yt=H+2.2-k*.5+.05; seg('neon2',new V3(x0,yt,Dl/2+.05),new V3(x1,yt,Dl/2+.05)); }
+  const bx=pxs[0], bz0=pz+pd/2+1.2, by=pY0+.7;
+  const hsW=2*(W*.27)-pw-1.4, hsY=pY0+.6, hsH=2.6;
+  if(blade){
+    B.step('blade');
+    box('signbg',.45,signH+.6,2.4,bx,by,bz0);
+    for(const s of[-1,1]){ const g=new THREE.PlaneGeometry(2.1,signH); g.translate(0,signH/2,0); fgeo(g,'sign',frame(bx+s*.27,by+.3,bz0,s*PI/2),0,0,0); }
+    steppedAttic('signbg',bx,by+signH+.6,bz0,2.4,.45,.35,3);
+  } else {
+    B.step('blade','Instead of a blade, the name runs horizontally between the twin towers in neon letters — a billboard built into the façade.');
+    box('signbg',hsW,hsH,.5,0,hsY,Dl/2+.25);
+    { const g=new THREE.PlaneGeometry(hsW-.4,hsH-.4); g.translate(0,(hsH-.4)/2,0); fgeo(g,'hsign',frame(0,hsY+.2,Dl/2+.55),0,0,0); }
   }
+  B.step('neon');
+  if(blade){ const zb=bz0+1.2, zb2=bz0-1.2;
+    for(const s of[-1,1]){ seg('neon',new V3(bx+s*.25,by,zb),new V3(bx+s*.25,by+signH+.6,zb)); seg('neon',new V3(bx+s*.25,by+signH+.6,zb),new V3(bx+s*.25,by+signH+.6,zb2)); } }
+  else { const z=Dl/2+.6, x=hsW/2+.05;
+    seg('neon',new V3(-x,hsY,z),new V3(x,hsY,z)); seg('neon',new V3(-x,hsY+hsH,z),new V3(x,hsY+hsH,z)); }
+  pvs.forEach(pv=>{ for(const s of[-1,1]) seg('neon2',new V3(pv.x+s*pw/2,pY0,pz+pd/2+.05),new V3(pv.x+s*pw/2,pY0+pyMain,pz+pd/2+.05)); });
+  for(const s of[-1,1]) for(let k=0;k<segs;k++){ const x0=s*(start+segW*k), x1=s*(start+segW*(k+1)), yt=H+2.2-k*.5+.05; seg('neon2',new V3(x0,yt,Dl/2+.05),new V3(x1,yt,Dl/2+.05)); }
   seg('neon',new V3(-cw/2+.6,y0+th+.2,zf+.05),new V3(cw/2-.6,y0+th+.2,zf+.05),.09);
   B.step('lighting').focusAll=true;
-  addSpot(-W*.6,.5,Dl/2+14,0,pY0+pyMain*.6,pz,0xffe0b0,2.2,.38);
-  addSpot(W*.6,.5,Dl/2+14,0,pY0+pyMain*.6,pz,0xffe0b0,2.2,.38);
+  pvs.forEach(pv=>{ addSpot(pv.x-W*.5,.5,Dl/2+14,pv.x,pY0+pyMain*.6,pz,0xffe0b0,2.2,.38); addSpot(pv.x+W*.5,.5,Dl/2+14,pv.x,pY0+pyMain*.6,pz,0xffe0b0,2.2,.38); });
   return { name:name.charAt(0)+name.slice(1).toLowerCase()+' Theatre', palette:pal.name, sign:true };
+}
+
+// drum + dome; kind: ribbed | onion | stepped. Returns the heights it used.
+function decoDome(y,r,kind='ribbed'){
+  const dh=r*.8;
+  cyl('stone',r,r,dh,0,y,0,32);
+  for(let i=0;i<16;i++){ const a=i/16*2*PI, b=a+PI/16;
+    box('glassLit',.55,dh*.55,.1,Math.sin(a)*(r+.02),y+dh*.2,Math.cos(a)*(r+.02),a);
+    box('stone2',.45,dh,.4,Math.sin(b)*r,y,Math.cos(b)*r,b); }
+  y+=dh; cyl('stone2',r*1.1,r*1.1,.5,0,y,0,32); y+=.5; cyl('stone2',r*.98,r*.98,.6,0,y,0,32); y+=.6;
+  const Rd=r*.95; let Hd;
+  if(kind==='stepped'){
+    Hd=Rd*1.15; const n=6;
+    for(let k=0;k<n;k++){ const rr=Rd*(1-k/n*.85), hh=Hd/n; cyl(k%2?'metal':'copper',rr*.96,rr,hh,0,y+k*hh,0,32); }
+  } else {
+    const onion=kind==='onion'; Hd=Rd*(onion?rnd(1.5,1.8):rnd(1.05,1.35));
+    const pr=t=>onion?Rd*1.15*Math.sin(PI*(.18+.82*t))*Math.pow(1-t,.25):Rd*Math.pow(Math.cos(t*PI/2),.85);
+    const py=t=>onion?Hd*t:Hd*Math.sin(t*PI/2);
+    const prof=[]; for(let i=0;i<=24;i++){ const t=i/24; prof.push(new THREE.Vector2(Math.max(.001,pr(t)),py(t))); }
+    { const g=new THREE.LatheGeometry(prof,40); g.translate(0,y,0); B.add(g,'copper'); }
+    for(let k=0;k<12;k++){
+      const pts=[]; for(let i=0;i<=14;i++){ const t=i/14*.92; pts.push(new V3(pr(t)+.06,py(t),0)); }
+      B.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.13,5,false),'metal',T(0,y,0,k*PI/6));
+    }
+  }
+  y+=Hd*.96; cyl('stone2',Rd*.16,Rd*.19,1.8,0,y,0,12);
+  for(let i=0;i<8;i++){ const a=i/8*2*PI; box('glassLit',.3,1.1,.08,Math.sin(a)*Rd*.17,y+.35,Math.cos(a)*Rd*.17,a); }
+  y+=1.8; cyl('metal',.04,Rd*.14,Rd*.5,0,y,0,12);
+  return { top:y+Rd*.5, dh, Hd };
 }
 
 function buildCivic(){
   const pal=pick(PAL.civic); B=new Builder(makeMats(pal));
-  const bay=rnd(3,3.5), P=1.8;
+  const V=VARIANT, bay=rnd(3,3.5), P=1.8;
   const nc=2*ri(2,3)+1, nw=ri(3,5), D=bay*ri(7,9), H=rnd(14,17.5);
   const center=vol(0,0,nc*bay,D,P,H), ww=nw*bay;
   const wings=[vol(-(center.w/2+ww/2),-bay*.5,ww,D-bay,P,H*.72), vol(center.w/2+ww/2,-bay*.5,ww,D-bay,P,H*.72)];
@@ -756,10 +833,17 @@ function buildCivic(){
   const vols=[center,...wings,...pavs];
   const pW=bay*1.4, pH=H*.5;
   const inP=(s,u)=>s==='front'&&Math.abs(u)<pW/2+1.8;
-  const tw0=Math.min(center.w*.55,D*.5), tz=-bay;
-  const tower=[vol(0,tz,tw0,tw0,P+H,rnd(9,15))];
-  tower.push(vol(0,tz,tw0*.78,tw0*.78,tower[0].y+tower[0].h,rnd(4,6)));
-  tower.push(vol(0,tz,tw0*.58,tw0*.58,tower[1].y+tower[1].h,3));
+  const hasTower=V==='tower'||V==='tall', tall=V==='tall', tz=-bay;
+  const tower=[];
+  if(hasTower){
+    const t0=tall?Math.min(center.w*.62,D*.6):Math.min(center.w*.55,D*.5);
+    tower.push(vol(0,tz,t0,t0,P+H,tall?rnd(20,28):rnd(9,15)));
+    tower.push(vol(0,tz,t0*.78,t0*.78,tower[0].y+tower[0].h,tall?rnd(7,10):rnd(4,6)));
+    tower.push(vol(0,tz,t0*.58,t0*.58,tower[1].y+tower[1].h,tall?5:3));
+    if(tall) tower.push(vol(0,tz,t0*.42,t0*.42,tower[2].y+tower[2].h,3));
+  }
+  const T0=tower.length?tower[0].w:0;
+  const portico=V==='portico', hc=H*.85, zc=D/2+2.6;
 
   B.step('plinth');
   box('stone2',pl.w,P,pl.d,0,0,0);
@@ -767,10 +851,27 @@ function buildCivic(){
   for(let k=1;k<N;k++) box('stone2',sw,P-P/N*k,.55,0,0,z0+.55*(k-.5));
   for(const s of[-1,1]) box('stone2',1.4,P+.7,.55*(N-1)+.2,s*(sw/2+.7),0,z0+.55*(N-1)/2);
   B.step('massing'); vols.forEach(v=>massBox(v));
-  B.step('tower'); tower.forEach(v=>massBox(v));
-  const capT=tower[2].y+tower[2].h; let capTop;
-  if(chance(.5)) capTop=steppedAttic('crown',0,capT,tz,tw0*.5,tw0*.5,.8,4);
-  else { cyl('crown',tw0*.2,tw0*.24,2.2,0,capT,tz,16); cyl('metal',0,tw0*.22,2.4,0,capT+2.2,tz,16); capTop=capT+4.6; }
+  let capTop=P+H+1;
+  if(hasTower){
+    B.step('tower',tall?'+Here the tower dominates: a true civic skyscraper, in the spirit of Los Angeles City Hall (1928) and Buffalo City Hall (1931).':undefined);
+    tower.forEach(v=>massBox(v));
+    const last=tower[tower.length-1], capT=last.y+last.h;
+    if(tall||chance(.5)){ capTop=CROWNS.pyramid(capT,last.w*1.1); }
+    else { cyl('crown',T0*.2,T0*.24,2.2,0,capT,tz,16); cyl('metal',0,T0*.22,2.4,0,capT+2.2,tz,16); capTop=capT+4.6; }
+  } else if(V==='dome'){
+    B.step('dome','+On a civic building the dome recalls the national capitol — here reshaped with a ribbed Deco profile and a glowing lantern.');
+    box('stone',center.w*.78,1.4,Math.min(D*.8,center.w*.78),0,P+H,0);
+    capTop=decoDome(P+H+1.4,Math.min(center.w,D)*.3,pick(['ribbed','stepped'])).top;
+  } else {
+    B.step('loggia','Instead of a tower, a giant order of square fluted columns stands across the centre — the classical temple front reduced to pure geometry, as at the Folger Library (1932).');
+    const n=nc;
+    for(let i=0;i<=n;i++){ const x=-center.w/2+i*bay;
+      box('stone2',1.0,hc,1.0,x,P,zc);
+      for(const s of[-1,1]) box('stone2',.12,hc-.8,.14,x+s*.32,P+.4,zc+.5);
+      box('stone2',1.35,.5,1.35,x,P+hc-.5,zc); }
+    box('stone',center.w+1.6,1.4,3.4,0,P+hc,zc-1.0);
+    capTop=steppedAttic('stone2',0,P+hc+1.4,zc-1.4,center.w*.55,2.6,.9,3);
+  }
   B.step('pilasters');
   vols.forEach((v,vi)=>{
     for(const f of faceFrames(v)){
@@ -784,10 +885,10 @@ function buildCivic(){
       }
     }
   });
-  piers(tower[0],tw0/3,'stone2',{ ext:.4 });
+  tower.forEach((v,i)=>{ if(i<tower.length-1) piers(v,v.w/3,'stone2',{ ext:i===0?.4:0 }); });
   B.step('windows','+Here the windows run two storeys tall between the pilasters, with bronze spandrels.');
   vols.forEach((v,vi)=>{ const nf=v.h>13?3:2, fh=(v.h-1.2-2.8)/nf; windows(v,bay,fh,{ start:1.2, end:2.8, wr:.5, hr:.72, skip:vi===0?(s,u,y)=>inP(s,u)&&y<pH+2.6:null }); });
-  windows(tower[0],tw0/3,2.2,{ start:.6, end:2.2, wr:.45, hr:.7 });
+  tower.forEach((v,i)=>{ if(i<tower.length-1) windows(v,v.w/3,2.2,{ start:.6, end:i===0?2.2:.8, wr:.45, hr:.7 }); });
   const cf=faceFrames(center)[0];
   B.step('entrance'); const fh=portal(cf,0,pW,pH,{ steps:4 });
   B.step('relief');
@@ -797,28 +898,32 @@ function buildCivic(){
   B.step('inscription');
   const text=pick(['LIBERTY · JUSTICE · PROGRESS','WISDOM AND KNOWLEDGE SHALL BE THE STABILITY OF THY TIMES','LAW · ORDER · INDUSTRY','THE PEOPLE ARE THE CITY','KNOWLEDGE IS POWER']);
   B.mats.carved=carvedMaterial(text,pal.stone2);
-  fbox('stone2',cf,center.w+.4,1.6,.62,0,H-2.6,.31);
-  { const g=new THREE.PlaneGeometry(center.w*.9,1.1); g.translate(0,.55,0); fgeo(g,'carved',cf,0,H-2.35,.67); }
+  if(portico){ const g=new THREE.PlaneGeometry(center.w*.95,1.0); g.translate(0,.5,0); fgeo(g,'carved',frame(0,P+hc+.2,zc+.75),0,0,0); }
+  else {
+    fbox('stone2',cf,center.w+.4,1.6,.62,0,H-2.6,.31);
+    const g=new THREE.PlaneGeometry(center.w*.9,1.1); g.translate(0,.55,0); fgeo(g,'carved',cf,0,H-2.35,.67);
+  }
   B.step('finials');
-  for(const sx of[-1,1]) for(const sz of[-1,1]) finial(sx*(tower[0].w/2-.8),tower[0].y+tower[0].h,tz+sz*(tower[0].d/2-.8),1.2);
+  if(hasTower) for(const sx of[-1,1]) for(const sz of[-1,1]) finial(sx*(T0/2-.8),tower[0].y+tower[0].h,tz+sz*(T0/2-.8),1.2);
+  else if(portico) for(const s of[-1,1]) finial(s*(center.w/2+.2),P+hc+1.4,zc-1.0,1.3);
+  else for(const sx of[-1,1]) for(const sz of[-1,1]) finial(sx*(center.w/2-1),P+H,sz*(D/2-1),1.2);
   pavs.forEach(v=>eagle(v.x,v.y+v.h,v.z+v.d/2-1.5,-PI/2,1.6));
   if(!pavs.length) wings.forEach(v=>eagle(v.x+Math.sign(v.x)*(v.w/2-1.5),v.y+v.h,v.z+v.d/2-1.5,-PI/2,1.4));
-  for(const s of[-1,1]){ lamp(s*(sw/2+.7),P+.7,z0+.55*(N-1)-.4,2.4); flagpole(s*(center.w/2+2),P,D/2+3,13); }
-  const hasClock=chance(.6);
-  if(hasClock){
+  for(const s of[-1,1]){ lamp(s*(sw/2+.7),P+.7,z0+.55*(N-1)-.4,2.4); flagpole(s*(center.w/2+(portico?3.2:2)),P,D/2+(portico?5.4:3),13); }
+  if(hasTower&&chance(.75)){
     B.step('clock'); B.mats.clock=clockMaterial();
-    const cr=tw0*.32;
+    const cr=T0*.32;
     for(const f of faceFrames(tower[0])){
       fgeo(new THREE.CircleGeometry(cr,32),'clock',f,0,tower[0].h-cr-1,.42);
       fgeo(new THREE.TorusGeometry(cr,.14,6,32),'metal',f,0,tower[0].h-cr-1,.44);
     }
   }
-  B.step('metal'); vols.forEach(v=>coping(v,v.y+v.h,.3)); tower.forEach(v=>coping(v,v.y+v.h+(v===tower[0]?.4:0),.3));
+  B.step('metal'); vols.forEach(v=>coping(v,v.y+v.h,.3)); tower.forEach((v,i)=>coping(v,v.y+v.h+(i===0?.4:0),.3));
   B.step('lighting').focusAll=true;
-  for(const s of[-1,1]) addSpot(s*center.w*.4,P+H+.3,tz+tw0*.9,0,capTop-4,tz,0xffe2b0,2.6,.32);
+  for(const s of[-1,1]) addSpot(s*center.w*.4,P+H+.3,(hasTower?tz:0)+6,0,capTop-4,hasTower?tz:0,0xffe2b0,2.6,.32);
   addSpot(-14,.5,z0+14,0,H*.6,D/2,0xfff0d0,1.6,.6); addSpot(14,.5,z0+14,0,H*.6,D/2,0xfff0d0,1.6,.6);
   const city=pick(['Port Halcyon','New Meridian','Sterling City','Aurora','Kingsbridge','Westhaven','Lakeport']);
-  return { name:city+' '+pick(['City Hall','Hall of Justice','Public Library','County Courthouse','Municipal Building','Post Office']), palette:pal.name };
+  return { name:city+' '+pick(['City Hall','Hall of Justice','Public Library','County Courthouse','Municipal Building','Post Office','State Capitol']), palette:pal.name };
 }
 
 function buildPalace(){
@@ -839,24 +944,9 @@ function buildPalace(){
   box('stone2',ter.w,P,ter.d,0,0,ter.z);
   for(let k=1;k<8;k++) box('stone2',cw*.7,P-P/8*k,.6,0,0,tf+.6*(k-.5));
   vols.forEach(v=>massBox(v));
-  B.step('dome');
-  let y=P+ch; box('stone',cw*.72,1.4,cw*.72,0,y,0); y+=1.4;
-  const r=cw*.3, dh=r*.8;
-  cyl('stone',r,r,dh,0,y,0,32);
-  for(let i=0;i<16;i++){ const a=i/16*2*PI, b=a+PI/16;
-    box('glassLit',.55,dh*.55,.1,Math.sin(a)*(r+.02),y+dh*.2,Math.cos(a)*(r+.02),a);
-    box('stone2',.45,dh,.4,Math.sin(b)*r,y,Math.cos(b)*r,b); }
-  y+=dh; cyl('stone2',r*1.1,r*1.1,.5,0,y,0,32); y+=.5; cyl('stone2',r*.98,r*.98,.6,0,y,0,32); y+=.6;
-  const Rd=r*.95, Hd=Rd*rnd(1.05,1.35), prof=[];
-  for(let i=0;i<=20;i++){ const t=i/20; prof.push(new THREE.Vector2(Math.max(.001,Rd*Math.pow(Math.cos(t*PI/2),.85)),Hd*Math.sin(t*PI/2))); }
-  { const g=new THREE.LatheGeometry(prof,40); g.translate(0,y,0); B.add(g,'copper'); }
-  for(let k=0;k<12;k++){
-    const pts=[]; for(let i=0;i<=12;i++){ const t=i/12*.92; pts.push(new V3(Rd*Math.pow(Math.cos(t*PI/2),.85)+.06,Hd*Math.sin(t*PI/2),0)); }
-    B.add(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts),24,.13,5,false),'metal',T(0,y,0,k*PI/6));
-  }
-  y+=Hd*.96; cyl('stone2',Rd*.16,Rd*.19,1.8,0,y,0,12);
-  for(let i=0;i<8;i++){ const a=i/8*2*PI; box('glassLit',.3,1.1,.08,Math.sin(a)*Rd*.17,y+.35,Math.cos(a)*Rd*.17,a); }
-  y+=1.8; cyl('metal',.04,Rd*.14,Rd*.5,0,y,0,12);
+  B.step('dome',{ ribbed:'+Here a ribbed, slightly pointed profile with a glazed lantern.', onion:'+Here an onion profile with a narrow neck, recalling Mughal domes.', stepped:'+Here the dome itself becomes a ziggurat of rings, alternating stone and gilt.' }[VARIANT]);
+  box('stone',cw*.72,1.4,cw*.72,0,P+ch,0);
+  const { dh, Hd }=decoDome(P+ch+1.4,cw*.3,VARIANT);
   B.step('windows','+Slender piers separate tall windows across every block.');
   vols.forEach((v,vi)=>{ piers(v,bay,'stone2',{ ratio:.2, ext:.4, cut:vi===0?(s,u)=>inP(s,u)?pH+2:0:null });
     windows(v,bay,3.6,{ start:1.2, end:1.8, wr:.5, hr:.68, spandrel:'accent', skip:vi===0?(s,u,yy)=>inP(s,u)&&yy<pH+2:null }); });
@@ -896,66 +986,105 @@ function buildStreamline(){
   const ps=pick(PASTELS);
   const pal={ name:'stucco & '+(['teal','oxblood','midnight','brass'][PASTELS.indexOf(ps)]), stone:0xcbbb9c, stone2:0xd9cbae, stone3:0xa8987c, accent:ps.a, accent2:ps.b, spandrel:0x8a8a8a, metal:'aluminum', neon:ps.neon, neon2:ps.neon2, glass:0x2a4152 };
   B=new Builder(makeMats(pal));
+  const V=VARIANT, corner=V==='corner';
   const name=pick(['TIDES','SEASPRAY','STARLITE','CORAL REEF','AVALON','NEPTUNE','FLAMINGO','SUNRAY','BREAKERS','ZEPHYR','MARLIN','ATLANTIS']);
   const nameNS=name.replace(/ /g,'');
   B.mats.sign=signMaterial(nameNS,'#'+new THREE.Color(ps.neon).getHexString(),'#14191c');
   const fh=1.3, g0=2, floors=ri(3,5), H=g0+floors*fh+.9;
   const W=rnd(26,34), D=rnd(13,16), r=rnd(2.6,3.8);
-  const body=vol(0,0,W,D,0,H), faces=faceFrames(body);
-  const tw=rnd(5,6.5), td=2.4, tz=D/2+td/2-.6, th=H+rnd(2,3.5);
-  const tv=vol(0,tz,tw,td,0,th), tf=faceFrames(tv)[0];
-  const rear=chance(.5);
-
-  B.step('streamline','+Here the whole block is a single rounded volume, like the hull of a liner.');
-  rbox('stone',W,D,H,r,0,0,0); if(rear) rbox('stone',W*.55,D*.6,H+fh*2,r*.8,0,0,-D*.22);
-  B.step('ribbon');
+  const faces=faceFrames(vol(0,0,W,D,0,H));
+  // stacked upper tiers for the "tiers" variant
+  const tiers=[];
+  if(V==='tiers'){ let tw_=W, td_=D, tr=r, y=H; const n=ri(1,2);
+    for(let k=0;k<n;k++){ tw_*=rnd(.62,.72); td_*=.78; tr*=.85; const fl=ri(1,2), hh=fl*fh+.7;
+      tiers.push({ w:tw_, d:td_, r:Math.max(1.2,tr), y, fl, h:hh, z:-D*.06*(k+1) }); y+=hh; } }
+  const Htop=tiers.length?tiers[tiers.length-1].y+tiers[tiers.length-1].h:H;
+  const tw=rnd(5,6.5), td=2.4, tz=D/2+td/2-.6, th=Htop+rnd(2,3.5);
+  const tv=vol(0,tz,tw,td,0,th);
+  // corner drum on the front-right corner
+  const dR=r+.9, dx=W/2-r, dz=D/2-r, da=PI/4;
+  const ef=corner?frame(dx+Math.sin(da)*dR,0,dz+Math.cos(da)*dR,da):faceFrames(tv)[0];
+  const rear=V==='center'&&chance(.5);
   const lit=()=>R()<.45?'glassLit':'glass';
-  for(let j=0;j<floors;j++){
-    const y=g0+j*fh+.3, hh=fh*.52;
-    faces.forEach((f,i)=>{ const len=f.len-2*r, mk=lit(); fbox(mk,f,len,hh,.1,0,y,.03);
+  const ribbon=(Wb,Db,rb,zc,y,hh)=>{
+    faceFrames(vol(0,zc,Wb,Db,0,1)).forEach((f,i)=>{ const len=f.len-2*rb; fbox(lit(),f,len,hh,.1,0,y,.03);
       if(i%2===0) for(let u=-len/2;u<=len/2+.01;u+=1.5) fbox('metal',f,.08,hh,.16,u,y,.06); });
-    [[W/2-r,D/2-r,0],[-W/2+r,D/2-r,1.5*PI],[W/2-r,-D/2+r,.5*PI],[-W/2+r,-D/2+r,PI]].forEach(([x,z,t])=>{
-      const g=new THREE.CylinderGeometry(r+.03,r+.03,hh,12,1,true,t,PI/2); g.translate(0,hh/2,0); B.add(g,lit(),T(x,y,z)); });
-  }
+    [[1,1,0],[-1,1,1.5*PI],[1,-1,.5*PI],[-1,-1,PI]].forEach(([sx,sz,t])=>{
+      const g=new THREE.CylinderGeometry(rb+.03,rb+.03,hh,12,1,true,t,PI/2); g.translate(0,hh/2,0); B.add(g,lit(),T(sx*(Wb/2-rb),y,zc+sz*(Db/2-rb))); });
+  };
+  // fin with the hotel name, standing at (x,y,z) and facing angle ry
+  const finH=rnd(7,9.5), sh=Math.min(finH-.8,nameNS.length*1.5), cellW=Math.min(2.8,sh/nameNS.length);
+  const fin=(x,y,z,ry)=>{
+    const xd=new V3(Math.cos(ry),0,-Math.sin(ry)), fw=new V3(Math.sin(ry),0,Math.cos(ry));
+    box('stone',.7,finH,3.2,x,y,z,ry);
+    for(const s of[-1,1]){ const g=new THREE.PlaneGeometry(cellW,sh); g.translate(0,sh/2,0);
+      B.add(g,'sign',T(x+xd.x*s*.4+fw.x*.3,y+(finH-sh)/2,z+xd.z*s*.4+fw.z*.3,ry+s*PI/2)); }
+    return { xd, fw };
+  };
+
+  B.step('streamline',{ center:'+Here the whole block is a single rounded volume, like the hull of a liner.',
+    corner:'+Here the block is anchored by a cylindrical drum on its corner — the prow of the ship, turned to face the intersection.',
+    tiers:'+Here the rounded block steps back in shallow tiers, like the decks of an ocean liner.' }[V]);
+  rbox('stone',W,D,H,r,0,0,0); if(rear) rbox('stone',W*.55,D*.6,H+fh*2,r*.8,0,0,-D*.22);
+  tiers.forEach(t=>rbox('stone',t.w,t.d,t.h,t.r,0,t.y,t.z));
+  B.step('ribbon');
+  for(let j=0;j<floors;j++) ribbon(W,D,r,0,g0+j*fh+.3,fh*.52);
+  tiers.forEach(t=>{ for(let j=0;j<t.fl;j++) ribbon(t.w,t.d,t.r,t.z,t.y+.35+j*fh,fh*.52); });
   if(rear) for(let j=floors;j<floors+2;j++){ const f=faceFrames(vol(0,-D*.22,W*.55,D*.6,0,H+fh*2))[0]; fbox(lit(),f,W*.55-2*r*.8,fh*.5,.1,0,g0+j*fh+.3,.03); }
-  faces.forEach((f,i)=>{ if(i===2) fbox('glass',f,f.len-2*r,1.3,.1,0,.3,.03); });
-  if(true){ const f=faces[0], half=(W-2*r)/2; for(const s of[-1,1]) fbox('glass',f,half-tw/2-3,1.3,.1,s*(tw/2+3+(half-tw/2-3)/2),.3,.03); }
+  fbox('glass',faces[2],W-2*r,1.3,.1,0,.3,.03);
+  if(corner) fbox('glass',faces[0],W-2*r,1.3,.1,0,.3,.03);
+  else { const half=(W-2*r)/2; for(const s of[-1,1]) fbox('glass',faces[0],half-tw/2-3,1.3,.1,s*(tw/2+3+(half-tw/2-3)/2),.3,.03); }
   B.step('eyebrows');
-  for(let j=0;j<floors;j++){ const y=g0+j*fh+.3+fh*.52+.08; rring('stone',W+1.5,D+1.5,r+.75,1.0,.12,0,y,0); }
-  B.step('fin');
-  rbox('stone',tw,td,th,.5,0,0,tz);
-  let ty=steppedAttic('stone',0,th,tz-.2,tw*.75,td*.8,.6,2);
-  const finH=rnd(7,9.5), finZ=tz-.2;
-  box('stone',.7,finH,3.2,0,ty,finZ);
-  const sh=Math.min(finH-.8,nameNS.length*1.5), cellW=Math.min(2.8,sh/nameNS.length);
-  for(const s of[-1,1]){ const g=new THREE.PlaneGeometry(cellW,sh); g.translate(0,sh/2,0); fgeo(g,'sign',frame(s*.4,ty+(finH-sh)/2,finZ+.3,s*PI/2),0,0,0); }
+  for(let j=0;j<floors;j++) rring('stone',W+1.5,D+1.5,r+.75,1.0,.12,0,g0+j*fh+.3+fh*.52+.08,0);
+  tiers.forEach(t=>{ for(let j=0;j<t.fl;j++) rring('stone',t.w+1.3,t.d+1.3,t.r+.65,.9,.12,0,t.y+.35+j*fh+fh*.52+.08,t.z); });
+  let ty, F;
+  if(corner){
+    B.step('fin','+Here the name fin crowns the corner drum, angled to the street corner.');
+    cyl('stone',dR,dR,th,dx,0,dz,40); cyl('stone',dR*.82,dR*.82,.6,dx,th,dz,32); cyl('stone',dR*.62,dR*.62,.6,dx,th+.6,dz,32);
+    ty=th+1.2; F=fin(dx,ty,dz,da);
+  } else {
+    B.step('fin');
+    rbox('stone',tw,td,th,.5,0,0,tz);
+    ty=steppedAttic('stone',0,th,tz-.2,tw*.75,td*.8,.6,2);
+    F=fin(0,ty,tz-.2,0);
+  }
   B.step('portholes');
   for(let j=0;j<floors;j++){ const y=g0+j*fh+fh*.5;
-    const g=new THREE.CylinderGeometry(.5,.5,.12,20); g.rotateX(PI/2); fgeo(g,lit(),tf,0,y,.06);
-    fgeo(new THREE.TorusGeometry(.55,.09,6,20),'metal',tf,0,y,.12); }
+    const g=new THREE.CylinderGeometry(.5,.5,.12,20); g.rotateX(PI/2); fgeo(g,lit(),ef,0,y,.06);
+    fgeo(new THREE.TorusGeometry(.55,.09,6,20),'metal',ef,0,y,.12); }
   B.step('speedlines');
   for(let k=0;k<3;k++) rring('accent',W+.3,D+.3,r+.15,.6,.14,0,H-.55-k*.38,0);
-  for(const s of[-1,1]) for(let k=0;k<3;k++) fbox('accent',tf,.14,th-g0-.6,.1,s*(tw/2-.5-k*.32),g0,.05);
+  if(corner) for(let k=0;k<3;k++) cyl('accent',dR+.08,dR+.08,.14,dx,th-1.2-k*.38,dz,40);
+  else for(const s of[-1,1]) for(let k=0;k<3;k++) fbox('accent',ef,.14,th-g0-.6,.1,s*(tw/2-.5-k*.32),g0,.05);
   B.step('glassblock');
-  for(const s of[-1,1]) fbox('glassblock',faces[0],1.8,g0-.2,.14,s*(tw/2+1.6),0,.07);
-  for(const s of[-1,1]){ const f=faceFrames(tv)[s>0?1:3]; fbox('glassblock',f,1.2,th-g0-1.2,.1,0,g0+.4,.05); }
+  if(corner){ for(const u of[-W*.12,-W*.32]) fbox('glassblock',faces[0],1.8,g0-.2,.14,u,0,.07); }
+  else {
+    for(const s of[-1,1]) fbox('glassblock',faces[0],1.8,g0-.2,.14,s*(tw/2+1.6),0,.07);
+    for(const s of[-1,1]){ const f=faceFrames(tv)[s>0?1:3]; fbox('glassblock',f,1.2,th-g0-1.2,.1,0,g0+.4,.05); }
+  }
   B.step('canopy');
-  const cs=new THREE.Shape(); const cwid=tw+2.4, cdep=2.8;
-  cs.moveTo(-cwid/2,0); cs.lineTo(-cwid/2,-cdep+cwid*0); cs.absarc(0,-cdep,cwid/2,PI,2*PI,false); cs.lineTo(cwid/2,0); cs.closePath();
-  { const g=new THREE.ExtrudeGeometry(cs,{ depth:.22, bevelEnabled:false, curveSegments:20 }); g.rotateX(PI/2); B.add(g,'stone',T(0,g0-.05,tz+td/2,0,0,0,1,1,.5)); }
-  fbox('door',tf,2.4,g0-.3,.12,0,0,.06); fbox('metal',tf,.1,g0-.3,.16,0,0,.08);
-  for(let k=0;k<3;k++) box('stone3',tw-k*.6,.15,1.2-k*.3,0,k*.15,tz+td/2+.6-k*.15);
+  { const cwid=tw+2.4, cs=new THREE.Shape();
+    cs.moveTo(-cwid/2,0); cs.lineTo(-cwid/2,.4); cs.absarc(0,.4,cwid/2,PI,0,true); cs.lineTo(cwid/2,0); cs.closePath();
+    const g=new THREE.ExtrudeGeometry(cs,{ depth:.22, bevelEnabled:false, curveSegments:20 }); g.rotateX(PI/2); g.scale(1,1,.55);
+    fgeo(g,'stone',ef,0,g0,corner?-.4:0); }
+  fbox('door',ef,2.4,g0-.3,.12,0,0,.06); fbox('metal',ef,.1,g0-.3,.16,0,0,.08);
+  for(let k=0;k<3;k++) fbox('stone3',ef,tw-k*.6,.15,1.2-k*.3,0,k*.15,.6+(1.2-k*.3)/2-.6+(corner?.2:0));
   B.step('pastel');
-  for(let j=0;j<floors;j++){ const y=g0+j*fh+.3+fh*.52+.02; rring('accent2',W+1.55,D+1.55,r+.78,.3,.06,0,y,0); }
+  for(let j=0;j<floors;j++) rring('accent2',W+1.55,D+1.55,r+.78,.3,.06,0,g0+j*fh+.3+fh*.52+.02,0);
   rring('accent2',W+.2,D+.2,r+.1,.4,.5,0,0,0);
-  steppedAttic('accent',0,th,tz-.2,tw*.75+.02,td*.8+.02,.6,2);
+  if(corner) cyl('accent2',dR+.06,dR+.06,.5,dx,0,dz,40);
+  else steppedAttic('accent',0,th,tz-.2,tw*.75+.02,td*.8+.02,.6,2);
   B.step('neon');
-  for(const s of[-1,1]){ seg('neon',new V3(s*.4,ty,finZ+1.62),new V3(s*.4,ty+finH,finZ+1.62)); seg('neon',new V3(s*.4,ty+finH,finZ+1.62),new V3(s*.4,ty+finH,finZ-1.6)); }
+  { const fx=corner?dx:0, fz=corner?dz:tz-.2;
+    for(const s of[-1,1]){
+      const p0=new V3(fx+F.xd.x*s*.4+F.fw.x*1.62,0,fz+F.xd.z*s*.4+F.fw.z*1.62), p1=new V3(fx+F.xd.x*s*.4-F.fw.x*1.6,0,fz+F.xd.z*s*.4-F.fw.z*1.6);
+      seg('neon',p0.clone().setY(ty),p0.clone().setY(ty+finH)); seg('neon',p0.clone().setY(ty+finH),p1.clone().setY(ty+finH)); } }
   rring('neon2',W+1.74,D+1.74,r+.87,.14,.1,0,g0+(floors-1)*fh+.3+fh*.52+.09,0);
-  seg('neon2',new V3(-tw*.375,th+1.25,tz-.2+td*.4+.02),new V3(tw*.375,th+1.25,tz-.2+td*.4+.02));
+  if(!corner) seg('neon2',new V3(-tw*.375,th+1.25,tz-.2+td*.4+.02),new V3(tw*.375,th+1.25,tz-.2+td*.4+.02));
   B.step('lighting').focusAll=true;
-  addSpot(-10,.4,D/2+10,0,th,tz,0xfff0e0,1.8,.4); addSpot(10,.4,D/2+10,0,th,tz,0xfff0e0,1.8,.4);
-  addPoint(0,g0-.6,tz+td/2+1.5,0xffe0b0,2.5,8);
+  const lx=corner?dx:0, lz=corner?dz:tz;
+  addSpot(lx-10,.4,D/2+10,lx,th,lz,0xfff0e0,1.8,.4); addSpot(lx+10,.4,D/2+10,lx,th,lz,0xfff0e0,1.8,.4);
+  addPoint(lx,g0-.6,lz+3,0xffe0b0,2.5,8);
   return { name:'The '+name.split(' ').map(w=>w[0]+w.slice(1).toLowerCase()).join(' ')+' Hotel', palette:pal.name, beach:true };
 }
 
@@ -974,13 +1103,24 @@ function buildPower(){
 
   B.step('massing','+A vast brick turbine hall with a raised central boiler house.'); massBox(hall); massBox(cb);
   B.step('corner'); corners.forEach(c=>c.forEach(v=>massBox(v)));
-  const chH=rnd(28,36), cr=s*.24;
-  B.step('chimneys');
-  corners.forEach(c=>{ const t=c[2], y=t.y+t.h;
-    cyl('white',cr*1.25,cr*1.35,1.2,t.x,y,t.z,24);
-    cyl('white',cr*.9,cr*.9,chH,t.x,y+1.2,t.z,24);
-    for(let i=0;i<18;i++){ const a=i/18*2*PI; box('white',.32,chH-1,.32,t.x+Math.sin(a)*cr*.92,y+1.2,t.z+Math.cos(a)*cr*.92,a); }
-    cyl('white',cr*1.06,cr*1.06,1.4,t.x,y+chH,t.z,24); cyl('spandrel',cr*.8,cr*.8,.12,t.x,y+chH+1.35,t.z,20); });
+  const V=VARIANT, chH=rnd(28,36), cr=s*.24;
+  const fluted=(x,y,z,cr,h)=>{
+    cyl('white',cr*1.25,cr*1.35,1.2,x,y,z,24);
+    cyl('white',cr*.9,cr*.9,h,x,y+1.2,z,24);
+    for(let i=0;i<18;i++){ const a=i/18*2*PI; box('white',.32,h-1,.32,x+Math.sin(a)*cr*.92,y+1.2,z+Math.cos(a)*cr*.92,a); }
+    cyl('white',cr*1.06,cr*1.06,1.4,x,y+h,z,24); cyl('spandrel',cr*.8,cr*.8,.12,x,y+h+1.35,z,20);
+  };
+  const stacks=[];
+  B.step('chimneys',{ four:'+Here four, one on each corner tower, like an upturned table — Battersea\'s famous silhouette.',
+    twin:'+Here a pair rises from the central boiler house, framing it like the towers of a cathedral front.',
+    single:'Industrial necessities become monuments. Here a single square chimney rises from the centre like a campanile — as at Bankside Power Station (1947–63), today Tate Modern.' }[V]);
+  if(V==='four') corners.forEach(c=>{ const t=c[2]; fluted(t.x,t.y+t.h,t.z,cr,chH); stacks.push([t.x,t.y+t.h,t.z]); });
+  else if(V==='twin') for(const sx of[-1,1]){ const x=sx*(cb.w/2-cr*1.4); fluted(x,H+cb.h,0,cr*1.1,chH*.9); stacks.push([x,H+cb.h,0]); }
+  else {
+    const sq=bay*3.2, cv=vol(0,0,sq,sq,H+cb.h,chH*1.15);
+    massBox(cv,'stone'); piers(cv,sq/4,'stone2',{ ratio:.3, ext:0 });
+    steppedAttic('stone2',0,cv.y+cv.h,0,sq*.9,sq*.9,.8,3); stacks.push([0,H+cb.h,0]);
+  }
   B.step('fluting');
   piers(hall,bay,'stone2',{ ratio:.32, ext:.8, cut:(sd,u)=>inP(sd,u)?pH+2.4:0 }); piers(cb,bay,'stone2',{ ratio:.32, ext:.6 });
   B.step('windows','+Here: towering slit windows that flood the turbine hall with light.');
@@ -997,18 +1137,18 @@ function buildPower(){
   B.step('metal'); coping(hall,H+.8,.6); coping(cb,cb.y+cb.h+.6,.6);
   corners.forEach(c=>c.forEach(v=>coping(v,v.y+v.h,.25)));
   B.step('lighting').focusAll=true;
-  corners.forEach(c=>{ const t=c[2]; addSpot(t.x*1.6,.5,t.z*1.6,t.x,t.y+chH*.6,t.z,0xfff0d8,2.2,.22); });
+  stacks.forEach(([x,y,z])=>addSpot(x*1.6+(x?0:10),.5,D*.9,x,y+chH*.6,z,0xfff0d8,2.2,.22));
   return { name:pick(['Riverside','Northbank','Kingsway','Thameside','Eastgate','Millbrook','Harbourside'])+' Power Station', palette:pal.name, river:true };
 }
 
 const TYPES = {
-  skyscraper:{ label:'Setback Skyscraper', era:'Manhattan · 1928–1932', desc:'The jazz-age tower: a ziggurat of setbacks rising to a jewelled crown, born of the race for the sky that produced the Chrysler and Empire State Buildings.', build:buildSkyscraper, urban:true },
-  slab:{ label:'Slab Skyscraper', era:'Rockefeller Center · 1930–1939', desc:'A sheer thin slab striped by continuous piers, its ends notched in symmetric setbacks — the sober, monumental late-Deco tower.', build:buildSlab, urban:true },
-  theatre:{ label:'Movie Palace', era:'Main Street · 1930s', desc:'Cinemas were Deco\'s most exuberant buildings: pylons, neon, marquees and blade signs designed to stop traffic and sell dreams.', build:buildTheatre, urban:true, street:true },
-  civic:{ label:'Civic Building', era:'City Hall · 1930s', desc:'Government in the machine age: a symmetrical, stripped-classical composition on a podium, crowned by a setback tower and carved with allegories.', build:buildCivic, urban:true },
-  palace:{ label:'Deco Palace', era:'Jodhpur · Paris · 1930s', desc:'Art Deco for maharajas and magnates: a domed symmetrical palace that fuses Deco geometry with Indian and European palace traditions.', build:buildPalace, garden:true },
-  streamline:{ label:'Streamline Hotel', era:'Miami Beach · 1936–1941', desc:'Late Deco turned aerodynamic: rounded corners, eyebrows, speed lines and portholes, outlined in neon along the waterfront.', build:buildStreamline, beach:true },
-  power:{ label:'Power Station', era:'London · 1929–1955', desc:'An industrial cathedral: a monumental brick hall with ziggurat corner towers and fluted chimneys — proof that infrastructure could be architecture.', build:buildPower, urban:true, river:true },
+  skyscraper:{ label:'Setback Skyscraper', era:'Manhattan · 1928–1932', desc:'The jazz-age tower: a ziggurat of setbacks rising to a jewelled crown, born of the race for the sky that produced the Chrysler and Empire State Buildings.', build:buildSkyscraper, urban:true, variants:{ ziggurat:'Ziggurat', needle:'Needle', wedding:'Wedding Cake', twin:'Twin Towers' } },
+  slab:{ label:'Slab Skyscraper', era:'Rockefeller Center · 1930–1939', desc:'A sheer thin slab striped by continuous piers, its ends notched in symmetric setbacks — the sober, monumental late-Deco tower.', build:buildSlab, urban:true, variants:{ stepped:'Stepped Slab' } },
+  theatre:{ label:'Movie Palace', era:'Main Street · 1930s', desc:'Cinemas were Deco\'s most exuberant buildings: pylons, neon, marquees and blade signs designed to stop traffic and sell dreams.', build:buildTheatre, urban:true, street:true, variants:{ pylon:'Central Pylon', side:'Corner Tower', twin:'Twin Pylons' } },
+  civic:{ label:'Civic Building', era:'City Hall · 1930s', desc:'Government in the machine age: a symmetrical, stripped-classical composition on a podium, crowned by a setback tower and carved with allegories.', build:buildCivic, urban:true, variants:{ tower:'Tower', tall:'Civic Skyscraper', dome:'Domed', portico:'Colonnade' } },
+  palace:{ label:'Deco Palace', era:'Jodhpur · Paris · 1930s', desc:'Art Deco for maharajas and magnates: a domed symmetrical palace that fuses Deco geometry with Indian and European palace traditions.', build:buildPalace, garden:true, variants:{ ribbed:'Ribbed Dome', onion:'Onion Dome', stepped:'Stepped Dome' } },
+  streamline:{ label:'Streamline Hotel', era:'Miami Beach · 1936–1941', desc:'Late Deco turned aerodynamic: rounded corners, eyebrows, speed lines and portholes, outlined in neon along the waterfront.', build:buildStreamline, beach:true, variants:{ center:'Centre Tower', corner:'Corner Drum', tiers:'Tiered Decks' } },
+  power:{ label:'Power Station', era:'London · 1929–1955', desc:'An industrial cathedral: a monumental brick hall with ziggurat corner towers and fluted chimneys — proof that infrastructure could be architecture.', build:buildPower, urban:true, river:true, variants:{ four:'Four Chimneys', twin:'Twin Chimneys', single:'Campanile Chimney' } },
 };
 
 // ---------------------------------------------------------------- scene
@@ -1136,13 +1276,16 @@ const state={ steps:[], cur:-1, playing:false, timer:0, interval:3.6, nightT:0, 
 
 function disposeObj(o){ o.traverse(x=>{ if(x.geometry) x.geometry.dispose(); if(x.material){ const m=x.material; for(const k of['map','emissiveMap']) if(m[k]&&m[k]._own) m[k].dispose(); m.dispose(); } }); }
 
-function generate(seed, type){
+let VARIANT=null;
+function generate(seed, type, variant){
   if(state.root){ scene.remove(state.root); disposeObj(state.root); }
   if(state.ctx){ scene.remove(state.ctx.group); disposeObj(state.ctx.group); }
   state.seed=seed; R=mulberry32(seed);
   const keys=Object.keys(TYPES);
   if(!TYPES[type]) type=keys[Math.floor(R()*keys.length)];
-  state.type=type;
+  const vkeys=Object.keys(TYPES[type].variants);
+  VARIANT=vkeys.includes(variant)?variant:vkeys[Math.floor(R()*vkeys.length)];
+  state.type=type; state.variant=VARIANT;
   const info=TYPES[type], meta=info.build();
   const root=new THREE.Group(); const steps=[];
   B.steps.forEach((s,i)=>{
@@ -1179,7 +1322,7 @@ function generate(seed, type){
   state.follow=true; state.focus={ c:c.clone(), d:state.fit };
   // UI
   document.getElementById('bname').textContent=meta.name;
-  document.getElementById('btype').textContent=info.label;
+  document.getElementById('btype').textContent=info.label+' · '+info.variants[VARIANT];
   document.getElementById('bera').textContent=info.era+' · '+meta.palette;
   document.getElementById('bdesc').textContent=info.desc;
   document.getElementById('seed').textContent='No. '+seed;
@@ -1192,7 +1335,7 @@ function generate(seed, type){
     li.onclick=()=>{ state.playing=false; setStep(i); };
     ol.appendChild(li);
   });
-  history.replaceState(null,'',`?seed=${seed}${urlType!=='random'?'&type='+urlType:''}`);
+  history.replaceState(null,'',`?seed=${seed}&type=${type}&v=${VARIANT}${urlType==='random'?'&any=1':''}`);
   updateUI();
 }
 function roman(n){ const m=[[10,'X'],[9,'IX'],[5,'V'],[4,'IV'],[1,'I']]; let s=''; for(const [v,r] of m) while(n>=v){ s+=r; n-=v; } return s; }
@@ -1220,11 +1363,27 @@ function nightTarget(){ return state.nightOverride ?? (state.lightIdx>=0&&state.
 
 // ---------------------------------------------------------------- UI wiring
 const params=new URLSearchParams(location.search);
-let urlType=params.get('type')||'random';
+let urlType=params.get('any')?'random':(params.get('type')||'random');
 const sel=document.getElementById('type');
 sel.innerHTML='<option value="random">Any style</option>'+Object.entries(TYPES).map(([k,v])=>`<option value="${k}">${v.label}</option>`).join('');
 sel.onchange=()=>{ urlType=sel.value; newBuilding(); };
-function newBuilding(){ generate(Math.floor(Math.random()*1e6), urlType); }
+// shuffled rotation (kept across reloads) so the same style or variant never comes up twice in a row
+const bagMem={};
+function fromBag(key, items, avoid){
+  let bag=bagMem[key]||[];
+  try{ bag=JSON.parse(localStorage.getItem(key)||'null')||bag; }catch(e){}
+  bag=bag.filter(x=>items.includes(x));
+  if(!bag.length){ bag=items.slice().sort(()=>Math.random()-.5); if(bag.length>1&&bag[0]===avoid) bag.push(bag.shift()); }
+  const v=bag.shift(); bagMem[key]=bag;
+  try{ localStorage.setItem(key,JSON.stringify(bag)); localStorage.setItem(key+'.last',v); }catch(e){}
+  return v;
+}
+function lastOf(key){ try{ return localStorage.getItem(key+'.last'); }catch(e){ return null; } }
+function newBuilding(){
+  const type=urlType==='random'?fromBag('deco.types',Object.keys(TYPES),lastOf('deco.types')):urlType;
+  const variant=fromBag('deco.v.'+type,Object.keys(TYPES[type].variants),lastOf('deco.v.'+type));
+  generate(Math.floor(Math.random()*1e6), type, variant);
+}
 document.getElementById('new').onclick=newBuilding;
 document.getElementById('prev').onclick=()=>{ state.playing=false; setStep(state.cur-1); };
 document.getElementById('next').onclick=()=>{ state.playing=false; setStep(state.cur+1); };
@@ -1311,7 +1470,8 @@ await Promise.race([Promise.all([document.fonts.load('64px Limelight'),document.
 resize();
 // a shared link opens its seed; reloading the page always draws a new building
 const isReload=performance.getEntriesByType('navigation')[0]?.type==='reload';
-generate((!isReload&&parseInt(params.get('seed')))||Math.floor(Math.random()*1e6), urlType);
+if(!isReload&&parseInt(params.get('seed'))) generate(parseInt(params.get('seed')), params.get('type'), params.get('v'));
+else newBuilding();
 const ld=document.getElementById('loading'); ld.style.opacity=0; setTimeout(()=>ld.remove(),700);
 tick();
 </script>
